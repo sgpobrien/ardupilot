@@ -219,7 +219,7 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
     // @Range: 0 500
     // @Increment: 10
     // @User: Advanced
-    AP_GROUPINFO("VEL_DELAY",    14, NavEKF, _msecVelDelay, 400), //Sean change delay amount
+    AP_GROUPINFO("VEL_DELAY",    14, NavEKF, _msecVelDelay, 220),
 
     // @Param: POS_DELAY
     // @DisplayName: GPS position measurement delay (msec)
@@ -227,7 +227,7 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
     // @Range: 0 500
     // @Increment: 10
     // @User: Advanced
-    AP_GROUPINFO("POS_DELAY",    15, NavEKF, _msecPosDelay, 400), //Sean change delay amount
+    AP_GROUPINFO("POS_DELAY",    15, NavEKF, _msecPosDelay, 220),
 
     // @Param: GPS_TYPE
     // @DisplayName: GPS velocity mode control
@@ -343,12 +343,9 @@ NavEKF::NavEKF(const AP_AHRS *ahrs, AP_Baro &baro) :
     _gpsNEVelVarAccScale    = 0.05f;    // Scale factor applied to NE velocity measurement variance due to manoeuvre acceleration
     _gpsDVelVarAccScale     = 0.07f;    // Scale factor applied to vertical velocity measurement variance due to manoeuvre acceleration
     _gpsPosVarAccScale      = 0.05f;    // Scale factor applied to horizontal position measurement variance due to manoeuvre acceleration
-  //   _msecHgtDelay           = 60;       // Height measurement delay (msec)
-    _msecHgtDelay           = 0;       // Sean change delay
- //   _msecMagDelay           = 40;       // Magnetometer measurement delay (msec)
-    _msecMagDelay           = 0;  // Sean change delay
- //   _msecTasDelay           = 240;      // Airspeed measurement delay (msec)
-    _msecTasDelay           = 0;    // l change delay
+    _msecHgtDelay           = 60;       // Height measurement delay (msec)
+    _msecMagDelay           = 40;       // Magnetometer measurement delay (msec)
+    _msecTasDelay           = 240;      // Airspeed measurement delay (msec)
     _gpsRetryTimeUseTAS     = 20000;    // GPS retry time with airspeed measurements (msec)
     _gpsRetryTimeNoTAS      = 10000;    // GPS retry time without airspeed measurements (msec)
     _hgtRetryTimeMode0      = 10000;    // Height retry time with vertical velocity measurement (msec)
