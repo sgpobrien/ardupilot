@@ -605,6 +605,13 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(flight_mode6,           "FLTMODE6",       FLIGHT_MODE_6),
 
+    // @Param: INITIAL_MODE
+    // @DisplayName: Initial flight mode
+    // @Description: This selects the mode to start in on boot. This is useful for when you want to start in AUTO mode on boot without a receiver.
+    // @Values: 0:Manual,1:CIRCLE,2:STABILIZE,3:TRAINING,4:ACRO,5:FBWA,6:FBWB,7:CRUISE,8:AUTOTUNE,10:Auto,11:RTL,12:Loiter,15:Guided
+    // @User: Advanced
+    GSCALAR(initial_mode,        "INITIAL_MODE",     MANUAL),
+
     // @Param: LIM_ROLL_CD
     // @DisplayName: Maximum Bank Angle
     // @Description: The maximum commanded bank angle in either direction
@@ -915,6 +922,13 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Values: 0:Disable,1:Enable
     // @User: Standard
     GSCALAR(rtl_autoland,         "RTL_AUTOLAND",   0),
+
+    // @Param: RC_TRIM_AT_START
+    // @DisplayNmae: RC Trims auto set at start.
+    // @Description: Automatically set roll/pitch trim from Tx at ground start. This makes the assumption that the RC transmitter has not been altered since trims were last captured.
+    // @Values: 0:Disable,1:Enable
+    // @User: Standard
+    GSCALAR(trim_rc_at_start,     "TRIM_RC_AT_START",    1), 
 
     // barometer ground calibration. The GND_ prefix is chosen for
     // compatibility with previous releases of ArduPlane
