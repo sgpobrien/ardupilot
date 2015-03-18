@@ -705,6 +705,13 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
 #endif
         break;
 
+    case MSG_EKF_STATUS_REPORT:
+#if AP_AHRS_NAVEKF_AVAILABLE
+        CHECK_PAYLOAD_SIZE(EKF_STATUS_REPORT);
+        ahrs.get_NavEKF().send_status_report(chan);
+#endif
+        break;
+
     case MSG_RETRY_DEFERRED:
         break; // just here to prevent a warning
 
@@ -940,6 +947,7 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_BATTERY2);
         send_message(MSG_MOUNT_STATUS);
         send_message(MSG_OPTICAL_FLOW);
+        send_message(MSG_EKF_STATUS_REPORT);
     }
 }
 
@@ -1038,23 +1046,25 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_PREFLIGHT_CALIBRATION:
-            if (packet.param3 == 1) {
-                in_calibration = true;
+            in_calibration = true;
+            if (packet.param1 == 1) {
+                ins.init_gyro();
+                if (ins.gyro_calibrated_ok_all()) {
+                    ahrs.reset_gyro_drift();
+                    result = MAV_RESULT_ACCEPTED;
+                } else {
+                    result = MAV_RESULT_FAILED;
+                }
+            } else if (packet.param3 == 1) {
                 init_barometer();
                 if (airspeed.enabled()) {
                     zero_airspeed(false);
                 }
-                in_calibration = false;
-                result = MAV_RESULT_ACCEPTED;
-            } else if (packet.param1 == 1 ||
-                       packet.param2 == 1) {
-                startup_INS_ground(true);
                 result = MAV_RESULT_ACCEPTED;
             } else if (packet.param4 == 1) {
                 trim_radio();
                 result = MAV_RESULT_ACCEPTED;
-            } 
-            else if (packet.param5 == 1) {
+            } else if (packet.param5 == 1) {
                 float trim_roll, trim_pitch;
                 AP_InertialSensor_UserInteract_MAVLink interact(this);
                 if (g.skip_gyro_cal) {
@@ -1073,6 +1083,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             else {
                     send_text_P(SEVERITY_LOW, PSTR("Unsupported preflight calibration"));
             }
+            in_calibration = false;
             break;
 
         case MAV_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:

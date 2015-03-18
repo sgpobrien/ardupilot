@@ -28,12 +28,21 @@ extern const AP_HAL::HAL& hal;
   altitude is in meters
  */
 
+<<<<<<< HEAD
 uint8_t storeIndexBaro;
 uint32_t lastStoreTimeBaro = 10;
 VectorN<uint32_t,50> timeStampBaro;
 VectorN<float,50> storedDataBaro;
 uint32_t timeDeltaBaro;
 uint32_t delayed_time_baro;
+=======
+uint8_t storeBaroIndex;
+uint32_t lastBaroStoreTime;
+VectorN<uint32_t,50> baroTimeStamp;
+VectorN<float,50> storedBaro;
+uint32_t timeBaroDelta;
+uint32_t delayed_baro_time;
+>>>>>>> cdb5e834174668ce42dd81973cc8dcb453a6ee5b
 
 void SITL_State::_update_barometer(float altitude)
 {
@@ -63,6 +72,7 @@ void SITL_State::_update_barometer(float altitude)
 
 	// add baro glitch
 	sim_alt += _sitl->baro_glitch;
+<<<<<<< HEAD
 
     // add delay
 	uint32_t bestTimeDeltaBaro = 200; // initialise large time representing buffer entry closest to current time - delay.
@@ -97,6 +107,36 @@ void SITL_State::_update_barometer(float altitude)
         sim_alt = storedDataBaro[bestIndexBaro];
 	}
 
+=======
+///////////////////////////////////////// add baro delay ////////////////////////////////////////
+	uint32_t bestTimeBaroDelta = 200;
+	uint8_t bestBaroIndex = 0;
+
+	if (now - lastBaroStoreTime >= 10) {
+        lastBaroStoreTime = now;
+        if (storeBaroIndex > 49) {
+            storeBaroIndex = 0;
+        }
+        storedBaro[storeBaroIndex] = sim_alt;
+        baroTimeStamp[storeBaroIndex] = lastBaroStoreTime;
+        storeBaroIndex = storeBaroIndex + 1;
+	}
+	delayed_baro_time = now - _sitl->baro_delay;
+	for (uint8_t i=0; i<=49; i++)
+    {
+        timeBaroDelta = delayed_baro_time - baroTimeStamp[i];
+        if (timeBaroDelta < bestTimeBaroDelta)
+        {
+            bestBaroIndex = i;
+            bestTimeBaroDelta = timeBaroDelta;
+        }
+	}
+	if (bestTimeBaroDelta < 200) // only output stored state if < 200 msec retrieval error
+	{
+        sim_alt = storedBaro[bestBaroIndex];
+	}
+///////////////////////////////////////// add baro delay ////////////////////////////////////////
+>>>>>>> cdb5e834174668ce42dd81973cc8dcb453a6ee5b
 	_barometer->setHIL(sim_alt);
 }
 

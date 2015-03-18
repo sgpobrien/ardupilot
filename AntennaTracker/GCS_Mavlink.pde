@@ -265,6 +265,7 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
     case MSG_MOUNT_STATUS:
     case MSG_OPTICAL_FLOW:
     case MSG_GIMBAL_REPORT:
+    case MSG_EKF_STATUS_REPORT:
         break; // just here to prevent a warning
     }
     return true;
@@ -519,10 +520,16 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             
             case MAV_CMD_PREFLIGHT_CALIBRATION:
             {
-                if (packet.param1 == 1 ||
-                    packet.param2 == 1) {
-                    calibrate_ins();
-                } else if (packet.param3 == 1) {
+                if (packet.param1 == 1) {
+                    ins.init_gyro();
+                    if (ins.gyro_calibrated_ok_all()) {
+                        ahrs.reset_gyro_drift();
+                        result = MAV_RESULT_ACCEPTED;
+                    } else {
+                        result = MAV_RESULT_FAILED;
+                    }
+                } 
+                if (packet.param3 == 1) {
                     init_barometer();
                     // zero the altitude difference on next baro update
                     nav_status.need_altitude_calibration = true;
@@ -531,7 +538,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                     // Cant trim radio
                 }
 #if !defined( __AVR_ATmega1280__ )
-                if (packet.param5 == 1) {
+                else if (packet.param5 == 1) {
                     float trim_roll, trim_pitch;
                     AP_InertialSensor_UserInteract_MAVLink interact(this);
                     if(ins.calibrate_accel(&interact, trim_roll, trim_pitch)) {

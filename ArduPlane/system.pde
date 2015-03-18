@@ -220,7 +220,7 @@ static void init_ardupilot()
     // choose the nav controller
     set_nav_controller();
 
-    set_mode(MANUAL);
+    set_mode((FlightMode)g.initial_mode.get());
 
     // set the correct flight mode
     // ---------------------------
@@ -257,11 +257,13 @@ static void startup_ground(void)
     //INS ground start
     //------------------------
     //
-    startup_INS_ground(false);
+    startup_INS_ground();
 
     // read the radio to set trims
     // ---------------------------
-    trim_radio();               // This was commented out as a HACK.  Why?  I don't find a problem.
+    if (g.trim_rc_at_start != 0) {
+        trim_radio();
+    }
 
     // Save the settings for in-air restart
     // ------------------------------------
@@ -498,7 +500,7 @@ static void check_short_failsafe()
 }
 
 
-static void startup_INS_ground(bool do_accel_init)
+static void startup_INS_ground(void)
 {
 #if HIL_MODE != HIL_MODE_DISABLED
     while (barometer.get_last_update() == 0) {
@@ -514,7 +516,7 @@ static void startup_INS_ground(bool do_accel_init)
 #endif
 
     AP_InertialSensor::Start_style style;
-    if (g.skip_gyro_cal && !do_accel_init) {
+    if (g.skip_gyro_cal) {
         style = AP_InertialSensor::WARM_START;
         arming.set_skip_gyro_cal(true);
     } else {
@@ -532,10 +534,6 @@ static void startup_INS_ground(bool do_accel_init)
     ahrs.set_wind_estimation(true);
 
     ins.init(style, ins_sample_rate);
-    if (do_accel_init) {
-        ins.init_accel();
-        ahrs.set_trim(Vector3f(0, 0, 0));
-    }
     ahrs.reset();
 
     // read Baro pressure at ground
