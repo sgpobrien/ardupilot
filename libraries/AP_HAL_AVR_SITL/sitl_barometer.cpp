@@ -28,12 +28,14 @@ extern const AP_HAL::HAL& hal;
   altitude is in meters
  */
 
+
 uint8_t storeBaroIndex;
 uint32_t lastBaroStoreTime;
 VectorN<uint32_t,50> baroTimeStamp;
 VectorN<float,50> storedBaro;
 uint32_t timeBaroDelta;
 uint32_t delayed_baro_time;
+
 
 void SITL_State::_update_barometer(float altitude)
 {
@@ -52,7 +54,7 @@ void SITL_State::_update_barometer(float altitude)
         }
 
 	// 80Hz, to match the real APM2 barometer
-        uint32_t now = hal.scheduler->millis();
+    uint32_t now = hal.scheduler->millis();
 	if ((now - last_update) < 12) {
 		return;
 	}
@@ -63,6 +65,7 @@ void SITL_State::_update_barometer(float altitude)
 
 	// add baro glitch
 	sim_alt += _sitl->baro_glitch;
+<<<<<<< HEAD
 ///////////////////////////////////////// add baro delay ////////////////////////////////////////
 	uint32_t bestTimeBaroDelta = 200;
 	uint8_t bestBaroIndex = 0;
@@ -91,6 +94,42 @@ void SITL_State::_update_barometer(float altitude)
         sim_alt = storedBaro[bestBaroIndex];
 	}
 ///////////////////////////////////////// add baro delay ////////////////////////////////////////
+=======
+
+    // add delay
+	uint32_t bestTimeDeltaBaro = 200; // initialise large time representing buffer entry closest to current time - delay.
+	uint8_t bestIndexBaro = 0; // initialise number representing the index of the entry in buffer closest to delay.
+
+    // storing data from sensor to buffer
+	if (now - lastStoreTimeBaro >= 10) { // store data every 10 ms.
+        lastStoreTimeBaro = now;
+        if (storeIndexBaro > 49) { // reset buffer index if index greater than size of buffer
+            storeIndexBaro = 0;
+        }
+        storedDataBaro[storeIndexBaro] = sim_alt; // add data to current index
+        timeStampBaro[storeIndexBaro] = lastStoreTimeBaro; // add timeStampBaro to current index
+        storeIndexBaro = storeIndexBaro + 1; // increment index
+	}
+
+	// return delayed measurement
+	delayed_time_baro = now - _sitl->baro_delay; // get time corresponding to delay
+	// find data corresponding to delayed time in buffer
+	for (uint8_t i=0; i<=49; i++)
+    {
+        timeDeltaBaro = delayed_time_baro - timeStampBaro[i]; // find difference between delayed time and measurement in buffer
+        // if this difference is smaller than last delta, store this time
+        if (timeDeltaBaro < bestTimeDeltaBaro)
+        {
+            bestIndexBaro = i;
+            bestTimeDeltaBaro = timeDeltaBaro;
+        }
+	}
+	if (bestTimeDeltaBaro < 200) // only output stored state if < 200 msec retrieval error
+	{
+        sim_alt = storedDataBaro[bestIndexBaro];
+	}
+
+>>>>>>> Delay buffers added to barometer, magnetometer, airspeed sensor.
 	_barometer->setHIL(sim_alt);
 }
 
