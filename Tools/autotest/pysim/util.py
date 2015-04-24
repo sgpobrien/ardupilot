@@ -341,14 +341,13 @@ class Wind(object):
         direction = self.direction
 
         # Get the wind vector.
-        w = toVec(speed, radians(direction))
+        w = Vector3(speed*cos(radians(direction)),speed*sin(radians(direction)),0)
 
         #Get wind difference 
         u = w - velocity
         f = drag_force(self,u.length())
         a = atan2(u.y,u.x)
         force = Vector3(f*cos(a),f*sin(a),0.0)
-        #print(a)
         return force
         
 

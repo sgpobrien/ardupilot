@@ -588,10 +588,10 @@ void SITL_State::_simulator_output(bool synthetic_clock_mode)
 	control.direction  = direction * 100;
 	control.turbulance = _sitl->wind_turbulance * 100;
 
-	// zero the wind for the first 15s to allow pitot calibration
-	//if (hal.scheduler->millis() < 15000) {
-	//	control.speed = 0;
-	//}
+	//zero the wind for the first 15s to allow pitot calibration
+	if (hal.scheduler->millis() < 15000) {
+		control.speed = 0;
+	}
 
 	sendto(_sitl_fd, (void*)&control, sizeof(control), MSG_DONTWAIT, (const sockaddr *)&_rcout_addr, sizeof(_rcout_addr));
 }

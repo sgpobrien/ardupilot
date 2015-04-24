@@ -18,7 +18,7 @@ class Rover(Aircraft):
                  max_wheel_turn=35.0,
                  turning_circle=1.8,
                  skid_turn_rate=140.0, # degrees/sec
-                 mass = 10,
+                 mass = 0.01,
                  skid_steering=False):
         Aircraft.__init__(self)
         self.max_speed = max_speed
@@ -30,6 +30,7 @@ class Rover(Aircraft):
         self.last_time = self.time_now
         self.skid_steering = skid_steering
         self.skid_turn_rate = skid_turn_rate
+        self.mass = mass
         if self.skid_steering:
             # these are taken from a 6V wild thumper with skid steering,
             # with a sabertooth controller

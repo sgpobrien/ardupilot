@@ -49,7 +49,7 @@ latitude = -35
 longitude = 149
 altitude = 600.0
 heading = 0.0
-speedN = 0
+speedN = 0.0
 speedE = 0.0
 speedD = 0.0
 xAccel = 0.0
@@ -61,7 +61,7 @@ yawRate = 0.0
 rollDeg = 0.0
 pitchDeg = 0.0
 yawDeg = 0.0
-airspeed = 0
+airspeed = 0.0
 magic = 0x4c56414f
 
 deltaT = 0.005
