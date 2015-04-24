@@ -11,13 +11,14 @@ from rotmat import Vector3, Matrix3
 class Rover(Aircraft):
     '''a simple rover'''
     def __init__(self,
-                 max_speed=20,
-                 max_accel=30,
+                 max_speed=20.0,
+                 max_accel=30.0,
                  wheelbase=0.335,
                  wheeltrack=0.296,
-                 max_wheel_turn=35,
+                 max_wheel_turn=35.0,
                  turning_circle=1.8,
-                 skid_turn_rate=140, # degrees/sec
+                 skid_turn_rate=140.0, # degrees/sec
+                 mass = 10,
                  skid_steering=False):
         Aircraft.__init__(self)
         self.max_speed = max_speed
@@ -106,25 +107,33 @@ class Rover(Aircraft):
 
 #        print('speed=%f throttle=%f steering=%f yaw_rate=%f accel=%f' % (speed, state.throttle, state.steering, yaw_rate, accel))
         
-        self.gyro = Vector3(0,0,radians(yaw_rate))
+        self.gyro = Vector3(0.0,0.0,radians(yaw_rate))
 
         # update attitude
         self.dcm.rotate(self.gyro * delta_time)
         self.dcm.normalize()
 
         # accel in body frame due to motor
-        accel_body = Vector3(accel, 0, 0)
+        accel_body = Vector3(accel, 0.0, 0.0)
 
         # add in accel due to direction change
         accel_body.y += radians(yaw_rate) * speed
 
         # now in earth frame
         accel_earth = self.dcm * accel_body
-        accel_earth += Vector3(0, 0, self.gravity)
+        accel_earth += Vector3(0.0, 0.0, self.gravity)
 
+        # add in some wind (turn force into accel by dividing by mass).
+        # NOTE: disable this drag correction until we work out
+        # why it is blowing up
+        accel_earth += self.wind.drag(self.velocity) / self.mass
+	#print(self.wind.drag(self.velocity) / self.mass)
+        #accel_earth += self.water.drag(self.velocity) / self.mass
+	#print(self.mass)
+	
         # if we're on the ground, then our vertical acceleration is limited
         # to zero. This effectively adds the force of the ground on the aircraft
-        accel_earth.z = 0
+        accel_earth.z = 0.0
 
         # work out acceleration as seen by the accelerometers. It sees the kinematic
         # acceleration (ie. real movement), plus gravity

@@ -576,10 +576,11 @@ void SITL_State::_simulator_output(bool synthetic_clock_mode)
     if (altitude < 0) {
         altitude = 0;
     }
-    if (altitude < 60) {
-        wind_speed *= altitude / 60.0f;
-    }
+    //if (altitude < 60) {
+    //    wind_speed *= altitude / 60.0f;
+    //}
 	control.speed      = wind_speed;
+	printf("%f \n", altitude);
 	float direction = _sitl->wind_direction;
 	if (direction < 0) {
 		direction += 360;
@@ -588,9 +589,9 @@ void SITL_State::_simulator_output(bool synthetic_clock_mode)
 	control.turbulance = _sitl->wind_turbulance * 100;
 
 	// zero the wind for the first 15s to allow pitot calibration
-	if (hal.scheduler->millis() < 15000) {
-		control.speed = 0;
-	}
+	//if (hal.scheduler->millis() < 15000) {
+	//	control.speed = 0;
+	//}
 
 	sendto(_sitl_fd, (void*)&control, sizeof(control), MSG_DONTWAIT, (const sockaddr *)&_rcout_addr, sizeof(_rcout_addr));
 }

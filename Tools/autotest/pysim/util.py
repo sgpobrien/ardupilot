@@ -336,37 +336,46 @@ class Wind(object):
         from math import radians
 
         # (m/s, degrees) : wind vector as a magnitude and angle.
-        (speed, direction) = self.current(deltat=deltat)
-        # speed = self.speed
-        # direction = self.direction
+        # (speed, direction) = self.current(deltat)
+        speed = self.speed
+        direction = self.direction
 
         # Get the wind vector.
         w = toVec(speed, radians(direction))
 
-        obj_speed = velocity.length()
+        #Get wind difference 
+        u = w - velocity
+        f = drag_force(self,u.length())
+        a = atan2(u.y,u.x)
+        force = Vector3(f*cos(a),f*sin(a),0.0)
+        #print(a)
+        return force
+        
+
+        #obj_speed = velocity.length()
 
         # Compute the angle between the object vector and wind vector by taking
         # the dot product and dividing by the magnitudes.
-        d = w.length() * obj_speed
-        if d == 0: 
-            alpha = 0
-        else: 
-            alpha = acos((w * velocity) / d)
+        #d = w.length() * obj_speed
+        #if d == 0.0: 
+        #    alpha = 0.0
+        #else: 
+        #    alpha = acos((w * velocity) / d)
 
         # Get the relative wind speed and angle from the object.  Note that the
         # relative wind speed includes the velocity of the object; i.e., there
         # is a headwind equivalent to the object's speed even if there is no
         # absolute wind.
-        (rel_speed, beta) = apparent_wind(speed, obj_speed, alpha)
+        #(rel_speed, beta) = apparent_wind(speed, obj_speed, alpha)
 
         # Return the vector of the relative wind, relative to the coordinate
         # system.
-        relWindVec = toVec(rel_speed, beta + atan2(velocity.y, velocity.x))
+        #relWindVec = toVec(rel_speed, beta + atan2(velocity.y, velocity.x))
 
         # Combine them to get the acceleration vector.
-        return Vector3( acc(relWindVec.x, drag_force(self, relWindVec.x))
-                      , acc(relWindVec.y, drag_force(self, relWindVec.y))
-                      , 0 )
+        #return Vector3( acc(relWindVec.x, drag_force(self, relWindVec.x))
+        #              , acc(relWindVec.y, drag_force(self, relWindVec.y))
+        #              , 0.0 )
 
 # http://en.wikipedia.org/wiki/Apparent_wind
 #

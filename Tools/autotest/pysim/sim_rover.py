@@ -55,7 +55,19 @@ def sim_recv(state):
 
     #print("steering=%f throttle=%f pwm=%s" % (state.steering, state.throttle, str(pwm)))
     
+    # update wind
+    global a
+    (speed, direction, turbulance) = control[11:]
+    a.wind.speed = speed*0.01
+    a.wind.direction = direction*0.01
+    a.wind.turbulance = turbulance*0.01 
+    #print(control[2])
 
+    # update water
+    #(speed, direction, turbulance) = control[11:]
+    #a.water.speed = speed*0.01
+    #a.water.direction = direction*0.01
+    #a.water.turbulance = turbulance*0.01
 
 def interpret_address(addrstr):
     '''interpret a IP:port string'''
@@ -80,6 +92,8 @@ parser.add_option("--home", dest="home",  type='string', default=None, help="hom
 parser.add_option("--rate", dest="rate", type='int', help="SIM update rate", default=1000)
 parser.add_option("--skid-steering", action='store_true', default=False, help="Use skid steering")
 parser.add_option("--speedup", type='float', default=1.0, help="speedup from realtime")
+parser.add_option("--wind", dest="wind", help="Simulate wind (speed,direction,turbulance)", default='0,0,0')
+#parser.add_option("--water", dest="water", help="Simulate water current (speed,direction,turbulance)", default='0,0,0')
 
 
 (opts, args) = parser.parse_args()
@@ -123,7 +137,8 @@ a.altitude       = a.home_altitude
 a.yaw            = float(v[3])
 a.latitude = a.home_latitude
 a.longitude = a.home_longitude
-
+a.wind = util.Wind(opts.wind)
+#a.water = util.Wind(opts.water)
 a.set_yaw_degrees(a.yaw)
 
 print("Starting at lat=%f lon=%f alt=%f heading=%.1f rate=%.1f" % (

@@ -156,7 +156,7 @@ class MultiCopter(Aircraft):
         # add in some wind (turn force into accel by dividing by mass).
         # NOTE: disable this drag correction until we work out
         # why it is blowing up
-        # accel_earth += self.wind.drag(self.velocity) / self.mass
+        accel_earth += self.wind.drag(self.velocity) / self.mass
 
         # if we're on the ground, then our vertical acceleration is limited
         # to zero. This effectively adds the force of the ground on the aircraft
