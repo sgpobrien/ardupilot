@@ -334,5 +334,37 @@ fi
 if [ $START_HIL == 1 ]; then
     options="$options --load-module=HIL"
 fi
+
+extra_cmd="$extra_cmd wp load ../Tools/autotest/ArduPlane-Missions/CMAC-toff-loop.txt;"
+#extra_cmd="$extra_cmd wp load ../Tools/autotest/ArduPlane-Missions/Ali-8.txt;"
+#extra_cmd="$extra_cmd wp load ../Tools/autotest/ArduPlane-Missions/Ali-8-small1.txt;"
+
+#extra_cmd="$extra_cmd "
+#echo 'COMMANDS TO MAVPROXY'
+#echo $options
+#echo $extra_cmd
+#echo $*
+
+#mavproxy.py $options --cmd="$extra_cmd" $* &
+#echo sleeping starts
+#sleep 35
+
+
+
 mavproxy.py $options --cmd="$extra_cmd" $*
+
+#screen -dm -S mavproxy /home/root/mav/mavproxy.sh
+#screen -s -d -m mavproxy.py $options --cmd="$extra_cmd" $*
+#screen -s /bin/bash -d -m mavproxy.py --aircraft=test --master /dev/serial/by-id/usb-FTDI*
+
+#python ~/juan/startsim.py
+#python ~/ardupilot/Tools/autotest/arduplane.py
+#$options --cmd="$extra_cmd" $*
+#sleep 20
+#mavproxy.py $options --cmd="auto" $*
+#echo hello
+
+echo Returning to Shell
+
+
 kill_tasks

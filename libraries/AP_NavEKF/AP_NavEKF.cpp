@@ -219,7 +219,7 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
     // @Range: 0 500
     // @Increment: 10
     // @User: Advanced
-    AP_GROUPINFO("VEL_DELAY",    14, NavEKF, _msecVelDelay, 400), //Sean change delay amount
+    AP_GROUPINFO("VEL_DELAY",    14, NavEKF, _msecVelDelay, 220),
 
     // @Param: POS_DELAY
     // @DisplayName: GPS position measurement delay (msec)
@@ -227,7 +227,7 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
     // @Range: 0 500
     // @Increment: 10
     // @User: Advanced
-    AP_GROUPINFO("POS_DELAY",    15, NavEKF, _msecPosDelay, 400), //Sean change delay amount
+    AP_GROUPINFO("POS_DELAY",    15, NavEKF, _msecPosDelay, 220), 
 
     // @Param: GPS_TYPE
     // @DisplayName: GPS velocity mode control
@@ -348,7 +348,7 @@ NavEKF::NavEKF(const AP_AHRS *ahrs, AP_Baro &baro) :
  //   _msecMagDelay           = 40;       // Magnetometer measurement delay (msec)
     _msecMagDelay           = 0;  // Sean change delay
  //   _msecTasDelay           = 240;      // Airspeed measurement delay (msec)
-    _msecTasDelay           = 0;    // l change delay
+    _msecTasDelay           = 0;    // Sean change delay
     _gpsRetryTimeUseTAS     = 20000;    // GPS retry time with airspeed measurements (msec)
     _gpsRetryTimeNoTAS      = 10000;    // GPS retry time without airspeed measurements (msec)
     _hgtRetryTimeMode0      = 10000;    // Height retry time with vertical velocity measurement (msec)
@@ -427,7 +427,7 @@ void NavEKF::ResetPosition(void)
         state.position.y = gpsPosNE.y + gpsPosGlitchOffsetNE.y + 0.001f*velNED.y*float(_msecPosDelay);
     }
     // stored horizontal position states to prevent subsequent GPS measurements from being rejected
-    for (uint8_t i=0; i<=49; i++){
+    for (uint8_t i=0; i<=(BUFFER_SIZE-1); i++){
         storedStates[i].position[0] = state.position[0];
         storedStates[i].position[1] = state.position[1];
     }
@@ -452,7 +452,7 @@ void NavEKF::ResetVelocity(void)
         state.vel1 = velNED;
         state.vel2 = velNED;
         // reset stored velocity states to prevent subsequent GPS measurements from being rejected
-        for (uint8_t i=0; i<=49; i++){
+        for (uint8_t i=0; i<=(BUFFER_SIZE-1); i++){
             storedStates[i].velocity = velNED;
         }
     }
@@ -468,7 +468,7 @@ void NavEKF::ResetHeight(void)
     state.posD1 = -hgtMea; // down position from IMU1 accel data
     state.posD2 = -hgtMea; // down position from IMU2 accel data
     // reset stored vertical position states to prevent subsequent GPS measurements from being rejected
-    for (uint8_t i=0; i<=49; i++){
+    for (uint8_t i=0; i<=(BUFFER_SIZE-1); i++){
         storedStates[i].position.z = -hgtMea;
     }
 }
@@ -851,7 +851,7 @@ void NavEKF::UpdateStrapdownEquationsNED()
     Quaternion qUpdated; // quaternion at current time step after application of delta quaternion
     Quaternion deltaQuat; // quaternion from last to current time step
     const Vector3f gravityNED(0, 0, GRAVITY_MSS); // NED gravity vector m/s^2
-
+ //   printf("%u \n",_msecPosDelay);	
     // remove sensor bias errors
     correctedDelAng = dAngIMU - state.gyro_bias;
     correctedDelVel1 = dVelIMU1;
@@ -2728,8 +2728,9 @@ void NavEKF::StoreStates()
     // Don't need to store states more often than every 10 msec
     if (imuSampleTime_ms - lastStateStoreTime_ms >= 10) {
         lastStateStoreTime_ms = imuSampleTime_ms;
-        if (storeIndex > 49) {
-            storeIndex = 0;
+ //       if (storeIndex > 49) {
+        if (storeIndex > (BUFFER_SIZE-1)) {   // Sean increase buffer length
+	    storeIndex = 0;
         }
         storedStates[storeIndex] = state;
         statetimeStamp[storeIndex] = lastStateStoreTime_ms;
@@ -2756,8 +2757,9 @@ void NavEKF::RecallStates(state_elements &statesForFusion, uint32_t msec)
     uint32_t timeDelta;
     uint32_t bestTimeDelta = 200;
     uint8_t bestStoreIndex = 0;
-    for (uint8_t i=0; i<=49; i++)
-    {
+ //   for (uint8_t i=0; i<=49; i++)
+   for (uint8_t i=0; i<=(BUFFER_SIZE-1); i++)    //sean increase buffer length from 50 to BUFFER_SIZE
+	{
         timeDelta = msec - statetimeStamp[i];
         if (timeDelta < bestTimeDelta)
         {
@@ -3138,8 +3140,8 @@ void NavEKF::readGpsData()
 
         // get state vectors that were stored at the time that is closest to when the the GPS measurement
         // time after accounting for measurement delays
-        RecallStates(statesAtVelTime, (imuSampleTime_ms - constrain_int16(_msecVelDelay, 0, 500)));
-        RecallStates(statesAtPosTime, (imuSampleTime_ms - constrain_int16(_msecPosDelay, 0, 500)));
+        RecallStates(statesAtVelTime, (imuSampleTime_ms - constrain_int16(_msecVelDelay, 0, MAX_MSDELAY)));
+        RecallStates(statesAtPosTime, (imuSampleTime_ms - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY)));
 
         // read the NED velocity from the GPS
         velNED = _ahrs->get_gps().velocity();

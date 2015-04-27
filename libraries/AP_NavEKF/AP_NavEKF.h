@@ -75,6 +75,10 @@ public:
     // Constructor
     NavEKF(const AP_AHRS *ahrs, AP_Baro &baro);
 
+
+#define BUFFER_SIZE  200   // sean buffer size for sensors
+#define MAX_MSDELAY  2000   // maximum allowed delay
+
     // This function is used to initialise the filter whilst moving, using the AHRS DCM solution
     // It should NOT be used to re-initialise after a timeout as DCM will also be corrupted
     void InitialiseFilterDynamic(void);
@@ -374,8 +378,8 @@ private:
     Matrix22 KH;                    // intermediate result used for covariance updates
     Matrix22 KHP;                   // intermediate result used for covariance updates
     Matrix22 P;                     // covariance matrix
-    VectorN<state_elements,50> storedStates;       // state vectors stored for the last 50 time steps
-    uint32_t statetimeStamp[50];    // time stamp for each state vector stored
+    VectorN<state_elements,BUFFER_SIZE> storedStates;       // state vectors stored for the last 50 time steps // sean increase the length from 50 to 200
+    uint32_t statetimeStamp[BUFFER_SIZE];    // time stamp for each state vector stored // sean increase the length from 50 to 200
     Vector3f correctedDelAng;       // delta angles about the xyz body axes corrected for errors (rad)
     Vector3f correctedDelVel12;     // delta velocities along the XYZ body axes for weighted average of IMU1 and IMU2 corrected for errors (m/s)
     Vector3f correctedDelVel1;      // delta velocities along the XYZ body axes for IMU1 corrected for errors (m/s)
