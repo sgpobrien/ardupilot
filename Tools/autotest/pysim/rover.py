@@ -42,7 +42,7 @@ class Rover(Aircraft):
         '''
         if abs(steering) < 1.0e-6:
             return 0
-        return self.turning_circle * sin(radians(35)) / sin(radians(steering*35))
+        return self.turning_circle * sin(radians(35.0)) / sin(radians(steering*35.0))
 
     def yaw_rate(self, steering, speed):
         '''return yaw rate in degrees/second given steering_angle and speed'''
@@ -64,14 +64,14 @@ class Rover(Aircraft):
 
     def lat_accel2(self, steering_angle, speed):
         '''return lateral acceleration in m/s/s'''
-        mincircle = self.wheelbase/sin(radians(35))
+        mincircle = self.wheelbase/sin(radians(35.0))
         steer = steering_angle/35
         return steer * (speed**2) * (2/mincircle)
 
     def steering_angle(self, lat_accel, speed):
         '''return steering angle to achieve the given lat_accel'''
-        mincircle = self.wheelbase/sin(radians(35))
-        steer = 0.5 * lat_accel * mincircle / (speed**2)
+        mincircle = self.wheelbase/sin(radians(35.0))
+        steer = 0.5 * lat_accel * mincircle / (speed**2.0)
         return steer * 35
 
     def update(self, state):
@@ -108,33 +108,33 @@ class Rover(Aircraft):
 
 #        print('speed=%f throttle=%f steering=%f yaw_rate=%f accel=%f' % (speed, state.throttle, state.steering, yaw_rate, accel))
         
-        self.gyro = Vector3(0.0,0.0,radians(yaw_rate))
+        self.gyro = Vector3(0,0,radians(yaw_rate))
 
         # update attitude
         self.dcm.rotate(self.gyro * delta_time)
         self.dcm.normalize()
 
         # accel in body frame due to motor
-        accel_body = Vector3(accel, 0.0, 0.0)
+        accel_body = Vector3(accel, 0, 0)
 
         # add in accel due to direction change
         accel_body.y += radians(yaw_rate) * speed
 
         # now in earth frame
         accel_earth = self.dcm * accel_body
-        accel_earth += Vector3(0.0, 0.0, self.gravity)
+        accel_earth += Vector3(0, 0, self.gravity)
 
         # add in some wind (turn force into accel by dividing by mass).
         # NOTE: disable this drag correction until we work out
         # why it is blowing up
         accel_earth += self.wind.drag(self.velocity) / self.mass
-	#print(self.wind.drag(self.velocity) / self.mass)
+	    #print(self.wind.drag(self.velocity) / self.mass)
         #accel_earth += self.water.drag(self.velocity) / self.mass
-	#print(self.mass)
+	    #print(self.mass)
 	
         # if we're on the ground, then our vertical acceleration is limited
         # to zero. This effectively adds the force of the ground on the aircraft
-        accel_earth.z = 0.0
+        accel_earth.z = 0
 
         # work out acceleration as seen by the accelerometers. It sees the kinematic
         # acceleration (ie. real movement), plus gravity
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     r = Rover()
     d1 = r.turn_circle(r.max_wheel_turn)
     print("turn_circle=", d1)
-    steer = 0.4*35
+    steer = 0.4*35.0
     speed = 2.65
 
     yrate = r.yaw_rate(steer, speed)

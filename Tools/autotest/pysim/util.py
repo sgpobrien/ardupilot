@@ -297,7 +297,7 @@ class Wind(object):
         self.speed     = float(a[0]) # m/s
         self.direction = float(a[1]) # direction the wind is going in
         self.turbulance= float(a[2]) # turbulance factor (standard deviation)
-
+	
         # the cross-section of the aircraft to wind. This is multiplied by the
         # difference in the wind and the velocity of the aircraft to give the acceleration
         self.cross_section = cross_section
@@ -383,13 +383,14 @@ class Wind(object):
 # tailwind.  Speeds should always be positive.
 def apparent_wind(wind_sp, obj_speed, alpha):
     delta = wind_sp * cos(alpha)
-    x = wind_sp**2 + obj_speed**2 + 2 * obj_speed * delta
+    x = wind_sp**2.0 + obj_speed**2.0 + 2.0 * obj_speed * delta
     rel_speed = sqrt(x)
-    if rel_speed == 0:
+    #print(obj_speed)
+    #print(rel_speed)
+    if rel_speed == 0.0:
         beta = pi
     else:
         beta = acos((delta + obj_speed) / rel_speed)
-
     return (rel_speed, beta)
 
 # See http://en.wikipedia.org/wiki/Drag_equation
@@ -403,22 +404,22 @@ def apparent_wind(wind_sp, obj_speed, alpha):
 # So then we have 
 # F(a) = 0.2 * 1/2 * v^2 * cross_section = 0.1 * v^2 * cross_section
 def drag_force(wind, sp): 
-    return (sp**2.0) * 0.1 * wind.cross_section
+    return (sp**2.0) * 1.0 * wind.cross_section
 
 # Function to make the force vector.  relWindVec is the direction the apparent
 # wind comes *from*.  We want to compute the accleration vector in the direction
 # the wind blows to.
 def acc(val, mag):
-    if val == 0:
+    if val == 0.0:
         return mag
     else:
-        return (val / abs(val)) * (0 - mag)
+        return (val / abs(val)) * (0.0 - mag)
 
 # Converts a magnitude and angle (radians) to a vector in the xy plane.
 def toVec(magnitude, angle):
-    v = Vector3(magnitude, 0, 0)
+    v = Vector3(magnitude, 0.0, 0.0)
     m = Matrix3()
-    m.from_euler(0, 0, angle)
+    m.from_euler(0.0, 0.0, angle)
     return m.transposed() * v
 
 

@@ -57,11 +57,11 @@ def sim_recv(state):
     
     # update wind
     global a
-    (speed, direction, turbulance) = control[11:]
+    (speed, direction, turbulance) = (control[11],control[12],control[13])
     a.wind.speed = speed*0.01
     a.wind.direction = direction*0.01
     a.wind.turbulance = turbulance*0.01 
-    #print(control[2])
+    print(a.wind.speed)
 
     # update water
     #(speed, direction, turbulance) = control[11:]

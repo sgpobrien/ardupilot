@@ -75,11 +75,11 @@ def sim_recv(m):
         m[i] = (pwm[i]-1000)/1000.0
 
     # update wind
-    global a
-    (speed, direction, turbulance) = control[11:]
-    a.wind.speed = speed*0.01
-    a.wind.direction = direction*0.01
-    a.wind.turbulance = turbulance*0.01
+    #global a
+    #(speed, direction, turbulance) = control[11:]
+    #a.wind.speed = speed*0.01
+    #a.wind.direction = direction*0.01
+    #a.wind.turbulance = turbulance*0.01
     
 
 
