@@ -36,17 +36,18 @@ def sim_send(a):
 def sim_recv(state):
     '''receive control information from SITL'''
     try:
-        buf = sim_in.recv(28)
+        #buf = sim_in.recv(28)
+        buf = sim_in.recv(34)
     except socket.error as e:
         print(e, e.error)
         if not e.errno in [ errno.EAGAIN, errno.EWOULDBLOCK ]:
             raise
         return
         
-    if len(buf) != 28:
+    if len(buf) != 34:
         print('len=%u' % len(buf))
         return
-    control = list(struct.unpack('<14H', buf))
+    control = list(struct.unpack('<17H', buf))
     pwm = control[0:11]
 
     # map steering and throttle to -1/1
@@ -61,13 +62,13 @@ def sim_recv(state):
     a.wind.speed = speed*0.01
     a.wind.direction = direction*0.01
     a.wind.turbulance = turbulance*0.01 
-    print(a.wind.speed)
 
     # update water
-    #(speed, direction, turbulance) = control[11:]
-    #a.water.speed = speed*0.01
-    #a.water.direction = direction*0.01
-    #a.water.turbulance = turbulance*0.01
+    (water_speed, water_direction, water_turbulance) = (control[14],control[15],control[16])
+    a.water.speed = water_speed*0.01
+    a.water.direction = water_direction*0.01
+    a.water.turbulance = water_turbulance*0.01
+    print(control[14])
 
 def interpret_address(addrstr):
     '''interpret a IP:port string'''
@@ -93,7 +94,7 @@ parser.add_option("--rate", dest="rate", type='int', help="SIM update rate", def
 parser.add_option("--skid-steering", action='store_true', default=False, help="Use skid steering")
 parser.add_option("--speedup", type='float', default=1.0, help="speedup from realtime")
 parser.add_option("--wind", dest="wind", help="Simulate wind (speed,direction,turbulance)", default='0,0,0')
-#parser.add_option("--water", dest="water", help="Simulate water current (speed,direction,turbulance)", default='0,0,0')
+parser.add_option("--water", dest="water", help="Simulate water current (speed,direction,turbulance)", default='0,0,0')
 
 
 (opts, args) = parser.parse_args()
@@ -138,7 +139,7 @@ a.yaw            = float(v[3])
 a.latitude = a.home_latitude
 a.longitude = a.home_longitude
 a.wind = util.Wind(opts.wind)
-#a.water = util.Wind(opts.water)
+a.water = util.Wind(opts.water)
 a.set_yaw_degrees(a.yaw)
 
 print("Starting at lat=%f lon=%f alt=%f heading=%.1f rate=%.1f" % (

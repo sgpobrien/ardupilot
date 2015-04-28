@@ -18,7 +18,7 @@ class Rover(Aircraft):
                  max_wheel_turn=35.0,
                  turning_circle=1.8,
                  skid_turn_rate=140.0, # degrees/sec
-                 mass = 0.01,
+                 mass = 10.0,
                  skid_steering=False):
         Aircraft.__init__(self)
         self.max_speed = max_speed
@@ -128,9 +128,9 @@ class Rover(Aircraft):
         # NOTE: disable this drag correction until we work out
         # why it is blowing up
         accel_earth += self.wind.drag(self.velocity) / self.mass
+        accel_earth += self.water.drag(self.velocity) / self.mass
 	    #print(self.wind.drag(self.velocity) / self.mass)
         #accel_earth += self.water.drag(self.velocity) / self.mass
-	    #print(self.mass)
 	
         # if we're on the ground, then our vertical acceleration is limited
         # to zero. This effectively adds the force of the ground on the aircraft

@@ -346,6 +346,8 @@ class Wind(object):
         #Get wind difference 
         u = w - velocity
         f = drag_force(self,u.length())
+        if f > 100.0:
+            f = 100.0
         a = atan2(u.y,u.x)
         force = Vector3(f*cos(a),f*sin(a),0.0)
         return force
@@ -385,8 +387,6 @@ def apparent_wind(wind_sp, obj_speed, alpha):
     delta = wind_sp * cos(alpha)
     x = wind_sp**2.0 + obj_speed**2.0 + 2.0 * obj_speed * delta
     rel_speed = sqrt(x)
-    #print(obj_speed)
-    #print(rel_speed)
     if rel_speed == 0.0:
         beta = pi
     else:

@@ -483,7 +483,8 @@ void SITL_State::_simulator_output(bool synthetic_clock_mode)
 	static uint32_t last_update_usec;
 	struct {
 		uint16_t pwm[11];
-		uint16_t speed, direction, turbulance, true_speed;
+		uint16_t speed, direction, turbulance;
+		uint16_t water_speed, water_direction, water_turbulance;
 	} control;
 	/* this maps the registers used for PWM outputs. The RC
 	 * driver updates these whenever it wants the channel output
@@ -572,28 +573,38 @@ void SITL_State::_simulator_output(bool synthetic_clock_mode)
 
 	// setup wind control
     float wind_speed = _sitl->wind_speed * 100;
-    control.true_speed = wind_speed;
     float altitude = _barometer?_barometer->get_altitude():0;
     if (altitude < 0) {
         altitude = 0;
     }
-    //if (altitude < 60) {
-    //    wind_speed *= altitude / 60.0f;
-    //}
+    if (altitude < 60) {
+        wind_speed *= altitude / 60.0f;
+    }
+    if (_vehicle == APMrover2) {
+			wind_speed = _sitl->wind_speed * 100;
+		}
 	control.speed      = wind_speed;
-	printf("%u \n", control.speed);
+    float water_speed = _sitl->water_speed * 100;
+    control.water_speed = water_speed;
+	//printf("%f \n", wind_speed*0.01);
 	float direction = _sitl->wind_direction;
 	if (direction < 0) {
 		direction += 360;
 	}
 	control.direction  = direction * 100;
 	control.turbulance = _sitl->wind_turbulance * 100;
+	float water_direction = _sitl->water_direction;
+	if (water_direction < 0) {
+		water_direction += 360;
+	}
+	control.water_direction  = water_direction * 100;
+	control.water_turbulance = _sitl->water_turbulance * 100;
 
 	//zero the wind for the first 15s to allow pitot calibration
 	if (hal.scheduler->millis() < 15000) {
 		control.speed = 0;
 	}
-
+    //printf("%d \n",sizeof(control));
 	sendto(_sitl_fd, (void*)&control, sizeof(control), MSG_DONTWAIT, (const sockaddr *)&_rcout_addr, sizeof(_rcout_addr));
 }
 
