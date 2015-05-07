@@ -28,6 +28,7 @@ public:
     void VelocityPredictor(Vector3f velocity);
     void VelocityPredictor2(Quaternion quat, Vector3f velocity, AP_Int16 _msecPosDelay);
     void CascadedPredictor(Vector3f tilde_q, Vector3f tilde_Vel, Vector3f corrected_tilde_Vel12, Quaternion quat, ftype dtIMU, AP_Int16 _msecPosDelay, Vector3f velocity, Vector3f position);
+    void BestIndex2(uint32_t *closestTime, uint32_t *closestStoreIndex, uint32_t *timeStamp[BUFFER_SIZE], AP_Int16 _msecPosDelay);
 
 private:
     uint32_t imuSampleTime_ms;
@@ -83,6 +84,11 @@ private:
     VectorN<Vector3f,BUFFER_SIZE> storedD_v;       //  sean vector part of quaternion Delta
     float storedD_s[BUFFER_SIZE];                 // sean  scalar part of quaternion Delta
     uint32_t DTimeStamp[BUFFER_SIZE];    		  // sean
+
+
+    uint16_t storeIndexd_v;						// sean
+    uint32_t lastd_vStoreTime_ms;
+    uint32_t d_vTimeStamp[BUFFER_SIZE];
     VectorN<Vector3f,BUFFER_SIZE> storedd_v;       //  sean buffer for delta corrsponding to velocity prediction
     VectorN<Vector3f,BUFFER_SIZE> storedd_p;       //  sean buffer for delta corrsponding to position prediction
     VectorN<Vector3f,BUFFER_SIZE> storedd_p_m;       //  sean buffer for delta corrsponding to position prediction mixed-invariant
