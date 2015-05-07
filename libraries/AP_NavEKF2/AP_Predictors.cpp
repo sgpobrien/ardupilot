@@ -74,6 +74,24 @@ void AP_Predictors::AttitudeModel(Vector3f tilde_q)
 
 }
 
+void AP_Predictors::BestIndex2(uint32_t *closestTime, uint32_t *closestStoreIndex, uint32_t *timeStamp[BUFFER_SIZE], AP_Int16 _msecPosDelay)
+{
+    uint32_t time;
+    *closestTime = 200;
+    *closestStoreIndex = 0;
+
+    for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
+    {
+        time = abs( (imuSampleTime_ms - *timeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY));
+        //       printf("%u \n",_msecPosDelay);
+        if (time < *closestTime)
+        {
+            *closestStoreIndex = i;
+            *closestTime = time;
+        }
+    }
+}
+
 void AP_Predictors::BestIndex(AP_Int16 _msecPosDelay)
 {
     uint32_t timeD;
@@ -128,15 +146,27 @@ void AP_Predictors::VelocityModel(Vector3f tilde_Vel)
 // velocity prediction
     Matrix3f Tbn_temp;
 
-    q_h.rotation_matrix(Tbn_temp);
+    q_hat.rotation_matrix(Tbn_temp);
     prevTnb_pred = Tbn_temp.transposed();
 
     d_v+=tilde_Vel ;
 
 // buffering d_v
-    storeIndexD = storeIndexD - 1;
-    storedd_v[storeIndexD]=d_v;
-    storeIndexD = storeIndexD + 1;
+    if (imuSampleTime_ms - lastd_vStoreTime_ms >= 10) {
+        lastd_vStoreTime_ms = imuSampleTime_ms;
+        if (storeIndexd_v > (BUFFER_SIZE-1)) {
+            storeIndexd_v = 0;
+        }
+        storedd_v[storeIndexd_v]=d_v;
+        d_vTimeStamp[storeIndexd_v] = lastd_vStoreTime_ms;
+        storeIndexd_v = storeIndexd_v + 1;
+    }
+
+
+
+//    storeIndexD = storeIndexD - 1;
+//    storedd_v[storeIndexD]=d_v;
+//    storeIndexD = storeIndexD + 1;
 }
 
 void AP_Predictors::VelocityPredictor(Vector3f velocity)
