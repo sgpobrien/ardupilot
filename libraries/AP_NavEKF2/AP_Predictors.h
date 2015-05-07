@@ -15,12 +15,19 @@ class AP_Predictors
 public:
     AP_Predictors();
     typedef float ftype;
-    void AttitudePredictor(Vector3f dAngIMU, Vector3f gyro_bias, AP_Int16 _msecPosDelay, Quaternion quat);
-    void VelocityPredictor(Quaternion quat, Vector3f dVelIMU1, Vector3f dVelIMU2, float IMU1_weighting, ftype dtIMU, AP_Int16 _msecPosDelay, float accel_zbias1, float accel_zbias2, Vector3f velocity, Vector3f position);   //    virtual ~AP_Predictors();
-    void PositionPredictor(ftype dtIMU, AP_Int16 _msecPosDelay, Vector3f position);
-    void VelocityPredictor2(Quaternion quat, Vector3f dVelIMU1, Vector3f dVelIMU2, float IMU1_weighting, ftype dtIMU, AP_Int16 _msecPosDelay, float accel_zbias1, float accel_zbias2, Vector3f velocity, Vector3f position);
-    void PositionPredictor2(ftype dtIMU, AP_Int16 _msecPosDelay, Vector3f position);
-    void CascadedPredictor(Vector3f dAngIMU, Vector3f gyro_bias, Quaternion quat, Vector3f dVelIMU1, Vector3f dVelIMU2, float IMU1_weighting, ftype dtIMU, AP_Int16 _msecPosDelay, float accel_zbias1, float accel_zbias2, Vector3f velocity, Vector3f position);
+    void BestIndex(AP_Int16 _msecPosDelay);
+    void AttitudeModel(Vector3f tilde_q);
+    void VelocityModel(Vector3f tilde_Vel);
+    void VelocityModel2(Vector3f corrected_tilde_Vel12);
+    void PositionModel(ftype dtIMU);
+    void PositionModel2(ftype dtIMU);
+    void AttitudePredictor(Quaternion quat);
+    void PositionPredictor(Vector3f position);
+    void PositionPredictor2(Vector3f position);
+    //void PositionPredictor3(Vector3f p_pred, Vector3f p, VectorN<Vector3f,BUFFER_SIZE> stored_p, ftype dtIMU, Vector3f position);
+    void VelocityPredictor(Vector3f velocity);
+    void VelocityPredictor2(Quaternion quat, Vector3f velocity, AP_Int16 _msecPosDelay);
+    void CascadedPredictor(Vector3f tilde_q, Vector3f tilde_Vel, Vector3f corrected_tilde_Vel12, Quaternion quat, ftype dtIMU, AP_Int16 _msecPosDelay, Vector3f velocity, Vector3f position);
 
 private:
     uint32_t imuSampleTime_ms;
@@ -31,7 +38,7 @@ private:
     float n_D_q_k1;
     Quaternion q_hat;   //sean prediction of the current quaternion
     Quaternion q_hat_T_k1;
-    Vector3f tilde_q;
+    // Vector3f tilde_q;
     float n_tilde_q;
     Quaternion delta_q;
     Matrix3f R_hat_T;
@@ -88,12 +95,13 @@ private:
     Vector3f D_q_tmp;
     Quaternion q_tmp;
 
-    Vector3f tilde_Vel;
-    Vector3f corrected_tilde_Vel1;
-    Vector3f corrected_tilde_Vel2;
-    Vector3f corrected_tilde_Vel12;
+//    Vector3f tilde_Vel;
+//    Vector3f corrected_tilde_Vel1;
+//    Vector3f corrected_tilde_Vel2;
+//    Vector3f corrected_tilde_Vel12;
 
     Matrix3f prevTnb_pred;
+    Matrix3f Tbn_temp;
 
     Vector3f d_p_Delay;
     Vector3f d_v_Delay;

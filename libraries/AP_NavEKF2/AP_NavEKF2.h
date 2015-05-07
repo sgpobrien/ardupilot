@@ -556,6 +556,12 @@ private:
     Vector3f d_p_m;
     Vector3f p_hat_m; // prediction of current position mixed-invariant
     Vector3f d_v_m;  // mixed-invariant
+
+    Vector3f tilde_Vel;
+    Vector3f corrected_tilde_Vel1;
+    Vector3f corrected_tilde_Vel2;
+    Vector3f corrected_tilde_Vel12;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Used by smoothing of state corrections

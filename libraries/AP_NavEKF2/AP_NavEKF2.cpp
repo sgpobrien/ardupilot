@@ -1065,10 +1065,20 @@ void NavEKF2::UpdateStrapdownEquationsNED()
 // retreive previous calculations
 // D_T = D;
 
+    tilde_q = dAngIMU - state.gyro_bias;
+
+    corrected_tilde_Vel1 = dVelIMU1;
+    corrected_tilde_Vel2 = dVelIMU2;
+    corrected_tilde_Vel1.z -= state.accel_zbias1;
+    corrected_tilde_Vel2.z -= state.accel_zbias2;
+    corrected_tilde_Vel12 =  corrected_tilde_Vel1* IMU1_weighting +  corrected_tilde_Vel2* (1.0f - IMU1_weighting);
+    tilde_Vel  = Tbn_temp*corrected_tilde_Vel12 + gravityNED*dtIMU;
+
+
 //test_Predictor.AttitudePredictor(dAngIMU, state.gyro_bias, _msecPosDelay, state.quat);
 //test_Predictor.VelocityPredictor(state.quat, dVelIMU1, dVelIMU2, IMU1_weighting, dtIMU, _msecPosDelay, state.accel_zbias1, state.accel_zbias2, state.velocity, state.position);
-    test_Predictor.CascadedPredictor(dAngIMU, state.gyro_bias, state.quat, dVelIMU1, dVelIMU2, IMU1_weighting, dtIMU, _msecPosDelay, state.accel_zbias1, state.accel_zbias2, state.velocity, state.position);
-//
+    test_Predictor.CascadedPredictor(tilde_q, tilde_Vel, corrected_tilde_Vel12, state.quat, dtIMU, _msecPosDelay, state.velocity, state.position);
+
 //
 //D_q = D_q_k1;
 //// q_hat = q_hat_T_k1;
