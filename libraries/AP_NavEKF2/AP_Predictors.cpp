@@ -126,10 +126,10 @@ void AP_Predictors::AttitudePredictor(Quaternion quat)
 void AP_Predictors::VelocityModel(Vector3f tilde_Vel)
 {
 // velocity prediction
-//    Matrix3f Tbn_temp;
-//
-//    q_h.rotation_matrix(Tbn_temp);
-//    prevTnb_pred = Tbn_temp.transposed();
+    Matrix3f Tbn_temp;
+
+    q_h.rotation_matrix(Tbn_temp);
+    prevTnb_pred = Tbn_temp.transposed();
 
     d_v+=tilde_Vel ;
 
