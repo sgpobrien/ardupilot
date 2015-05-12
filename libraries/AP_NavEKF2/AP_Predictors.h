@@ -48,8 +48,9 @@ private:
     Matrix3f R_hat_T;
     Matrix3f R_hat;
     Vector3f d_v;
-
+    Vector3f v_hat; // prediction of current velocity
     Vector3f d_p;
+    Vector3f p_hat; // prediction of current position
     Vector3f v_hat_m; // prediction of current velocity mixed-invariant
     Vector3f d_p_m;
     Vector3f p_hat_m; // prediction of current position mixed-invariant
@@ -135,8 +136,6 @@ private:
 
     Vector3f d_p_Delay;
     Vector3f d_v_Delay;
-
-    uint32_t bestTime;
 
 };
 
