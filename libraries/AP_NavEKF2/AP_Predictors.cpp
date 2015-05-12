@@ -4,11 +4,9 @@
 
 #include <stdio.h>
 
-
 #include <iostream>
 using namespace std;
 #include <stdlib.h>
-
 
 extern const AP_HAL::HAL& hal;
 const Vector3f gravityNED(0, 0, GRAVITY_MSS);
@@ -58,65 +56,58 @@ void AP_Predictors::AttitudeModel(Vector3f tilde_q)
     D_q_k1[2] = D_q_k1[2]/n_D_q_k1;
     D_q_k1[3] = D_q_k1[3]/n_D_q_k1;
 
-    if (imuSampleTime_ms - lastDStoreTime_ms >= 10) {
-        lastDStoreTime_ms = imuSampleTime_ms;
-        if (storeIndexD > (BUFFER_SIZE-1)) {
-            storeIndexD = 0;
-        }
-        storedD_s[storeIndexD]=D_q_k1[0];
-        D_q_tmp[0]=D_q_k1[1];
-        D_q_tmp[1]=D_q_k1[2];
-        D_q_tmp[2]=D_q_k1[3];
-        storedD_v[storeIndexD] = D_q_tmp;
-        DTimeStamp[storeIndexD] = lastDStoreTime_ms;
-        storeIndexD = storeIndexD + 1;
-    }
-
+    storeDataQuaternion(D_q_k1, storedD, lastDStoreTime_ms, DTimeStamp, storeIndexD);
 }
 
-void AP_Predictors::BestIndex2(uint32_t *closestTime, uint16_t *closestStoreIndex, uint32_t (*timeStamp)[BUFFER_SIZE], AP_Int16 _msecDelay)
+void AP_Predictors::storeDataVector(Vector3f &data, VectorN<Vector3f,BUFFER_SIZE> &buffer, uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex)
 {
-    uint32_t time;
-    *closestTime = 200;
-    *closestStoreIndex = 0;
-
-    for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-    {
-        time = abs( (imuSampleTime_ms - *timeStamp[i]) - constrain_int16(_msecDelay, 0, MAX_MSDELAY));
-        if (time < *closestTime)
-        {
-            *closestStoreIndex = i;
-            *closestTime = time;
+    uint32_t currentTime = hal.scheduler->millis();
+    if (currentTime - lastStoreTime >= 10) {
+        lastStoreTime = currentTime;
+        if (storeIndex > (BUFFER_SIZE-1)) {
+            storeIndex = 0;
         }
+        buffer[storeIndex]=data;
+        timeStamp[storeIndex] = lastStoreTime;
+        storeIndex = storeIndex + 1;
     }
 }
 
-
-void AP_Predictors::BestIndex(AP_Int16 _msecPosDelay)
+void AP_Predictors::storeDataQuaternion(Quaternion &data, VectorN<Quaternion,BUFFER_SIZE> &buffer, uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex)
 {
-    uint32_t timeD;
-    uint32_t bestTimeD = 200;
-    bestStoreIndex = 0;
-
-    for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-    {
-        timeD = abs( (imuSampleTime_ms - DTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY));
-        if (timeD < bestTimeD)
-        {
-            bestStoreIndex = i;
-            bestTimeD = timeD;
+    uint32_t currentTime = hal.scheduler->millis();
+    if (currentTime - lastStoreTime >= 10) {
+        lastStoreTime = currentTime;
+        if (storeIndex > (BUFFER_SIZE-1)) {
+            storeIndex = 0;
         }
+        buffer[storeIndex]=data;
+        timeStamp[storeIndex] = lastStoreTime;
+        storeIndex = storeIndex + 1;
     }
 }
 
+void AP_Predictors::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay)
+{
+    uint32_t time_delta;
+    closestTime = 200;
+    closestStoreIndex = 0;
+
+    for (int i=0; i<=(BUFFER_SIZE-1); i++)
+    {
+        time_delta = abs( (imuSampleTime_ms - timeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY));
+        //       printf("%u \n",_msecPosDelay);
+        if (time_delta < closestTime)
+        {
+            closestStoreIndex = i;
+            closestTime = time_delta;
+        }
+    }
+}
 
 void AP_Predictors::AttitudePredictor(Quaternion quat)
 {
-    D_Delay[0] = storedD_s[bestStoreIndex];
-    D_q_tmp=storedD_v[bestStoreIndex];
-    D_Delay[1] = D_q_tmp[0];
-    D_Delay[2] = D_q_tmp[1];
-    D_Delay[3] = D_q_tmp[2];
+    D_Delay = storedD[bestStoreIndexD];
 
 // D_q_delay^{-1}
     q_tmp[0]= D_Delay[0];
@@ -143,64 +134,36 @@ void AP_Predictors::AttitudePredictor(Quaternion quat)
 void AP_Predictors::VelocityModel(Vector3f tilde_Vel)
 {
 // velocity prediction
-    Matrix3f Tbn_temp;
-
     q_hat.rotation_matrix(Tbn_temp);
     prevTnb_pred = Tbn_temp.transposed();
 
     d_v+=tilde_Vel ;
 
 // buffering d_v
-    if (imuSampleTime_ms - lastd_vStoreTime_ms >= 10) {
-        lastd_vStoreTime_ms = imuSampleTime_ms;
-        if (storeIndexd_v > (BUFFER_SIZE-1)) {
-            storeIndexd_v = 0;
-        }
-        storedd_v[storeIndexd_v]=d_v;
-        d_vTimeStamp[storeIndexd_v] = lastd_vStoreTime_ms;
-        storeIndexd_v = storeIndexd_v + 1;
-    }
-
-
-
-//    storeIndexD = storeIndexD - 1;
-//    storedd_v[storeIndexD]=d_v;
-//    storeIndexD = storeIndexD + 1;
+    storeDataVector(d_v, storedd_v, lastd_vStoreTime_ms, d_vTimeStamp, storeIndexd_v);
 }
 
 void AP_Predictors::VelocityPredictor(Vector3f velocity)
 {
 // picking up the delayed d_v
-    d_v_Delay=storedd_v[bestStoreIndex];
+    d_v_Delay=storedd_v[bestStoreIndexd_v];
 
 // v_hat
     v_hat = velocity + d_v- d_v_Delay;
 }
-
-//void AP_Predictors::PositionModel(Vector3f d_p, AP_Int16 _msecPosDelay, Vector3f position)
-//{
-//// position prediction
-//    d_p+= v_hat*dtIMU;
-//// buffering d_p
-//    storeIndexD = storeIndexD - 1;
-//    storedd_p[storeIndexD]=d_p;
-//    storeIndexD = storeIndexD + 1;
-//}
 
 void AP_Predictors::PositionModel(ftype dtIMU)
 {
 // position prediction
     d_p+= v_hat*dtIMU;
 // buffering d_p
-    storeIndexD = storeIndexD - 1;
-    storedd_p[storeIndexD]=d_p;
-    storeIndexD = storeIndexD + 1;
+    storeDataVector(d_p, storedd_p, lastd_pStoreTime_ms, d_pTimeStamp, storeIndexd_p);
 }
 
 void AP_Predictors::PositionPredictor(Vector3f position)
 {
 // picking up the delayed d_p
-    d_p_Delay=storedd_p[bestStoreIndex];
+    d_p_Delay=storedd_p[bestStoreIndexd_p];
 // p_hat
     p_hat = position + d_p- d_p_Delay;
 }
@@ -210,33 +173,16 @@ void AP_Predictors::PositionModel2(ftype dtIMU)
 // position prediction
     d_p_m+= v_hat_m*dtIMU;
 // buffering d_p
-    storeIndexD = storeIndexD - 1;
-    storedd_p_m[storeIndexD]=d_p_m;
-    storeIndexD = storeIndexD + 1;
+    storeDataVector(d_p_m, storedd_p_m, lastd_p_mStoreTime_ms, d_p_mTimeStamp, storeIndexd_p_m);
 }
 
 void AP_Predictors::PositionPredictor2(Vector3f position)
 {
 // picking up the delayed d_p
-    d_p_Delay=storedd_p_m[bestStoreIndex];
+    d_p_Delay=storedd_p_m[bestStoreIndexd_p_m];
 // p_hat
     p_hat_m = position + d_p_m- d_p_Delay;
 }
-
-//void AP_Predictors::PositionPredictor3(Vector3f p_pred, Vector3f p, VectorN<Vector3f,BUFFER_SIZE> stored_p, ftype dtIMU, Vector3f position)
-//{
-//// position prediction
-//    p += v_hat_m*dtIMU;
-//// buffering d_p
-//    storeIndexD = storeIndexD - 1;
-//    stored_p[storeIndexD]=p;
-//    storeIndexD = storeIndexD + 1;
-//// picking up the delayed d_p
-//    Vector3f p_Delay;
-//    p_Delay=stored_p[bestStoreIndex];
-//// p_hat
-//    p_pred = position + p - p_Delay;
-//}
 
 void AP_Predictors::VelocityModel2(Vector3f corrected_tilde_Vel12)
 {
@@ -246,9 +192,7 @@ void AP_Predictors::VelocityModel2(Vector3f corrected_tilde_Vel12)
     d_v_m= d_v_m+Tbn_temp*corrected_tilde_Vel12 ;
 
 // buffering d_v_m
-    storeIndexD = storeIndexD - 1;
-    storedd_v_m[storeIndexD]=d_v_m;
-    storeIndexD = storeIndexD + 1;
+    storeDataVector(d_v_m, storedd_v_m, lastd_v_mStoreTime_ms, d_v_mTimeStamp, storeIndexd_v_m);
 
     if (ctr_rst==100) {   // reset every ctr_rst*20 (ms)
         ctr_rst=0;
@@ -265,7 +209,7 @@ void AP_Predictors::VelocityModel2(Vector3f corrected_tilde_Vel12)
 void AP_Predictors::VelocityPredictor2(Quaternion quat, Vector3f velocity, AP_Int16 _msecPosDelay)
 {
 // picking up the delayed d_v
-    Vector3f d_v_m_Delay=storedd_v_m[bestStoreIndex];
+    Vector3f d_v_m_Delay=storedd_v_m[bestStoreIndexd_v_m];
 
 // D_q_delay^{-1}
     q_tmp[0]= D_Delay[0];
@@ -287,6 +231,31 @@ void AP_Predictors::VelocityPredictor2(Quaternion quat, Vector3f velocity, AP_In
     v_hat_m = velocity + gravityNED*(0.001f*constrain_int16(_msecPosDelay, 0, MAX_MSDELAY))+Tbn_temp*(d_v_m- d_v_m_Delay);
 }
 
+void AP_Predictors::getAttitudePrediction(Quaternion &att)
+{
+    att = q_hat;
+}
+
+void AP_Predictors::getPositionPrediction(Vector3f &pos)
+{
+    pos = p_hat;
+}
+
+void AP_Predictors::getPosition2Prediction(Vector3f &pos)
+{
+    pos = p_hat_m;
+}
+
+void AP_Predictors::getVelocityPrediction(Vector3f &vel)
+{
+    vel = v_hat;
+}
+
+void AP_Predictors::getVelocity2Prediction(Vector3f &vel)
+{
+    vel = v_hat_m;
+}
+
 void AP_Predictors::CascadedPredictor(Vector3f tilde_q, Vector3f tilde_Vel, Vector3f corrected_tilde_Vel12, Quaternion quat, ftype dtIMU, AP_Int16 _msecPosDelay, Vector3f velocity, Vector3f position)
 {
     AttitudeModel(tilde_q);
@@ -294,8 +263,12 @@ void AP_Predictors::CascadedPredictor(Vector3f tilde_q, Vector3f tilde_Vel, Vect
     VelocityModel2(corrected_tilde_Vel12);
     PositionModel(dtIMU);
     PositionModel2(dtIMU);
-    BestIndex(_msecPosDelay);
-//    BestIndex2(&bestTime,&bestStoreIndex,&DTimeStamp,_msecPosDelay);
+    //BestIndex(_msecPosDelay);
+    BestIndex(bestTimeD, bestStoreIndexD, DTimeStamp, _msecPosDelay);
+    BestIndex(bestTimed_v, bestStoreIndexd_v, d_vTimeStamp, _msecPosDelay);
+    BestIndex(bestTimed_p, bestStoreIndexd_p, d_pTimeStamp, _msecPosDelay);
+    BestIndex(bestTimed_v_m, bestStoreIndexd_v_m, d_v_mTimeStamp, _msecPosDelay);
+    BestIndex(bestTimed_p_m, bestStoreIndexd_p_m, d_p_mTimeStamp, _msecPosDelay);
     AttitudePredictor(quat);
     VelocityPredictor(velocity);
     PositionPredictor(position);
