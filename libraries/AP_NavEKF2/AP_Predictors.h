@@ -28,7 +28,10 @@ public:
     void VelocityPredictor(Vector3f velocity);
     void VelocityPredictor2(Quaternion quat, Vector3f velocity, AP_Int16 _msecPosDelay);
     void CascadedPredictor(Vector3f tilde_q, Vector3f tilde_Vel, Vector3f corrected_tilde_Vel12, Quaternion quat, ftype dtIMU, AP_Int16 _msecPosDelay, Vector3f velocity, Vector3f position);
-    void BestIndex2(uint32_t *closestTime, uint32_t *closestStoreIndex, uint32_t *timeStamp[BUFFER_SIZE], AP_Int16 _msecPosDelay);
+    void BestIndex2(uint32_t *closestTime, uint16_t *closestStoreIndex, uint32_t (*timeStamp)[BUFFER_SIZE], AP_Int16 _msecDelay);
+    Quaternion q_hat;   //sean prediction of the current quaternion
+    Vector3f v_hat; // prediction of current velocity
+    Vector3f p_hat; // prediction of current position
 
 private:
     uint32_t imuSampleTime_ms;
@@ -37,7 +40,7 @@ private:
     Quaternion D_q;
     Quaternion D_q_k1;
     float n_D_q_k1;
-    Quaternion q_hat;   //sean prediction of the current quaternion
+
     Quaternion q_hat_T_k1;
     // Vector3f tilde_q;
     float n_tilde_q;
@@ -45,9 +48,8 @@ private:
     Matrix3f R_hat_T;
     Matrix3f R_hat;
     Vector3f d_v;
-    Vector3f v_hat; // prediction of current velocity
+
     Vector3f d_p;
-    Vector3f p_hat; // prediction of current position
     Vector3f v_hat_m; // prediction of current velocity mixed-invariant
     Vector3f d_p_m;
     Vector3f p_hat_m; // prediction of current position mixed-invariant
@@ -111,6 +113,8 @@ private:
 
     Vector3f d_p_Delay;
     Vector3f d_v_Delay;
+
+    uint32_t bestTime;
 
 };
 

@@ -354,8 +354,8 @@ NavEKF2::NavEKF2(const AP_AHRS *ahrs, AP_Baro &baro, RangeFinder &rng) :
     _gpsNEVelVarAccScale    = 0.05f;    // Scale factor applied to NE velocity measurement variance due to manoeuvre acceleration
     _gpsDVelVarAccScale     = 0.07f;    // Scale factor applied to vertical velocity measurement variance due to manoeuvre acceleration
     _gpsPosVarAccScale      = 0.05f;    // Scale factor applied to horizontal position measurement variance due to manoeuvre acceleration
-//   _msecHgtDelay           = 60;       // Height measurement delay (msec)
-    _msecHgtDelay           = 0;       // Sean change delay
+//   _msecHgtDelay           = 80;       // Height measurement delay (msec)
+//    _msecHgtDelay           = 0;       // Sean change delay
 //   _msecMagDelay           = 40;       // Magnetometer measurement delay (msec)
     _msecMagDelay           = 0;  // Sean change delay
 //   _msecTasDelay           = 240;      // Airspeed measurement delay (msec)
@@ -2194,47 +2194,10 @@ void NavEKF2::FuseVelPosNED()
             else hgtRetryTime = _hgtRetryTimeMode12;
 
 
-////////////////// sean buffering Hgt data and replacing the Hgt measurement with delayed Hgt measurement
-// sean ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            if (lastHealthyHgtTime_ms - lastHgtStoreTime_ms >= 10) {
-                lastHgtStoreTime_ms = lastHealthyHgtTime_ms;
-                if (storeIndexHgt > (BUFFER_SIZE-1)) {
-                    storeIndexHgt = 0;
-                }
-                storedHgt[storeIndexHgt] = hgtMea;
-                HgtTimeStamp[storeIndexHgt] = lastHgtStoreTime_ms;
-                storeIndexHgt = storeIndexHgt + 1;
-//printf("%u , %u, %f \n", TASmsecPrev, imuSampleTime_ms);
-//        cout << imuSampleTime_ms << "   " << storedAngRate[storeIndexIMU] << "\n";
-            }
-
-
-            uint32_t timeDeltaHgt;
-            uint32_t bestTimeDeltaHgt = 200;
-            uint16_t bestStoreIndex = 0;
-
-            float Hgt_Delayed;
-
-            for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-            {
-                timeDeltaHgt = abs( (imuSampleTime_ms - HgtTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecHgtDelay);
-                if (timeDeltaHgt < bestTimeDeltaHgt)
-                {
-                    bestStoreIndex = i;
-                    bestTimeDeltaHgt = timeDeltaHgt;
-                }
-            }
-            Hgt_Delayed = storedHgt[bestStoreIndex];
-
-//printf("%u , %u, %u, %u , %d, %f \n", imuSampleTime_ms, bestStoreIndex, bestTimeDeltaMag, MagTimeStamp[storeIndexMag-1], int(MagTimeStamp[storeIndexMag-1]-MagTimeStamp[bestStoreIndex]), Mag_Delay[0]);
-
-
-
-
             // calculate height innovations
 
-            observation[5]=-Hgt_Delayed;
+
+            observation[5]=-hgtMea;
             hgtInnov = statesAtHgtTime.position.z - observation[5];
 
 
@@ -2718,55 +2681,21 @@ void NavEKF2::FuseMagnetometer()
         }
 
 
-// sean
 
-        /*
-
-        //printf("%u , %u \n", storeIndexIMU, angRateTimeStamp[storeIndexIMU]);
-        //        cout << imuSampleTime_ms << "   " << storedAngRate[storeIndexIMU] << "\n";
-            }
-        */
-
-        if (lastHealthyMagTime_ms - lastMagStoreTime_ms >= 10) {
-            lastMagStoreTime_ms = lastHealthyMagTime_ms;
-            if (storeIndexMag > (BUFFER_SIZE-1)) {
-                storeIndexMag = 0;
-            }
-            storedMag[storeIndexMag] = magData;
-            // storedMag[storeIndexMag][obsIndex];
-            MagTimeStamp[storeIndexMag] = lastMagStoreTime_ms;
-            storeIndexMag = storeIndexMag + 1;
-//printf("%u , %u, %f \n", lastHealthyMagTime_ms, imuSampleTime_ms);
-//        cout << imuSampleTime_ms << "   " << storedAngRate[storeIndexIMU] << "\n";
-        }
-
-        uint32_t timeDeltaMag;
-        uint32_t bestTimeDeltaMag = 200;
-        uint16_t bestStoreIndex = 0;
-        float Mag_Delay;
-
-
-        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-        {
-            timeDeltaMag = abs( (imuSampleTime_ms - MagTimeStamp[i]) -constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecMagDelay);
-            if (timeDeltaMag < bestTimeDeltaMag)
-            {
-                bestStoreIndex = i;
-                bestTimeDeltaMag = timeDeltaMag;
-            }
-        }
-        Mag_Delay = storedMag[bestStoreIndex][obsIndex];
-
-// Mag_Delay = storedMag[bestStoreIndex][obsIndex];
-
-//printf("%u , %u, %u, %u , %d, %f \n", imuSampleTime_ms, bestStoreIndex, bestTimeDeltaMag, MagTimeStamp[storeIndexMag-1], int(MagTimeStamp[storeIndexMag-1]-MagTimeStamp[bestStoreIndex]), Mag_Delay[0]);
-
+  static FILE *mylogg;
+    if (mylogg==NULL) {
+        mylogg = fopen("logtmpp.txt", "w");
+    }
+    if (mylogg!=NULL) {
+        // fputs ("Ali",  mylog);
+        fprintf (mylogg, "{%lu;%f;%f;%f}\n", (unsigned long)hal.scheduler->millis(), magData[0], magData[1], magData[2]);
+    }
 
 
 
         // calculate the measurement innovation
 //        innovMag[obsIndex] = MagPred[obsIndex] - magData[obsIndex];
-        innovMag[obsIndex] = MagPred[obsIndex] - Mag_Delay;
+        innovMag[obsIndex] = MagPred[obsIndex] - magData[obsIndex];
 
 
 ////////////////////// end sean
@@ -3333,6 +3262,12 @@ void NavEKF2::getEulerAngles(Vector3f &euler) const
     euler = euler - _ahrs->get_trim();
 }
 
+//void NavEKF2::getEulerAngles(Vector3f &euler) const   //loging predictor states rather than EKF2 sates
+//{
+//    test_Predictor.q_hat.to_euler(euler.x, euler.y, euler.z);
+//    euler = euler - _ahrs->get_trim();
+//}
+
 /*
 // Sean v1-v4 filling
 void NavEKF2::getv1(float &v1) const
@@ -3342,20 +3277,34 @@ void NavEKF2::getv1(float &v1) const
 */
 
 // return NED velocity in m/s
-void NavEKF2::getVelNED(Vector3f &vel) const
+void NavEKF2::getVelNED(Vector3f &vel) const  //loging predictor states rather than EKF2 sates
 {
     vel = state.velocity;
-// Sean new data log
-//    vel = v_hat;
 }
+
+//void NavEKF2::getVelNED(Vector3f &vel) const
+//{
+//    vel = test_Predictor.v_hat;
+//}
+
 
 // return the last calculated NED position relative to the reference point (m).
 // return false if no position is available
-bool NavEKF2::getPosNED(Vector3f &pos) const
+
+bool NavEKF2::getPosNED(Vector3f &pos) const  //loging predictor states rather than EKF2 sates
 {
     pos = state.position;
     return true;
 }
+
+
+
+//bool NavEKF2::getPosNED(Vector3f &pos) const
+//{
+//    pos = test_Predictor.p_hat;
+//    return true;
+//}
+
 
 // return body axis gyro bias estimates in rad/sec
 void NavEKF2::getGyroBias(Vector3f &gyroBias) const
@@ -3730,46 +3679,147 @@ void NavEKF2::readGpsData()
 }
 
 // check for new altitude measurement data and update stored measurement if available
-void NavEKF2::readHgtData()
+//void NavEKF2::readHgtData()
+//{
+//    // check to see if baro measurement has changed so we know if a new measurement has arrived
+//    if (_baro.get_last_update() != lastHgtMeasTime) {
+//        // time stamp used to check for new measurement
+//        lastHgtMeasTime = _baro.get_last_update();
+//
+//        // time stamp used to check for timeout
+//        lastHgtTime_ms = imuSampleTime_ms;
+//
+//        // get measurement and set flag to let other functions know new data has arrived
+//        hgtMea = _baro.get_altitude();
+//        newDataHgt = true;
+//
+//        // get states that wer stored at the time closest to the measurement time, taking measurement delay into account
+//        RecallStates(statesAtHgtTime, (imuSampleTime_ms - _msecHgtDelay));
+//    } else {
+//        newDataHgt = false;
+//    }
+//}
+void NavEKF2::readHgtData()    // modified for the delayed buffer
 {
     // check to see if baro measurement has changed so we know if a new measurement has arrived
-    if (_baro.get_last_update() != lastHgtMeasTime) {
+    if (_baro.get_last_update() != lastHgtMeasTime1) {
         // time stamp used to check for new measurement
-        lastHgtMeasTime = _baro.get_last_update();
+        lastHgtMeasTime1 = _baro.get_last_update();
 
         // time stamp used to check for timeout
-        lastHgtTime_ms = imuSampleTime_ms;
+        lastHgtTime_ms1 = imuSampleTime_ms;
 
         // get measurement and set flag to let other functions know new data has arrived
-        hgtMea = _baro.get_altitude();
-        newDataHgt = true;
+        hgtMea1 = _baro.get_altitude();
 
-        // get states that wer stored at the time closest to the measurement time, taking measurement delay into account
-        RecallStates(statesAtHgtTime, (imuSampleTime_ms - _msecHgtDelay));
-    } else {
-        newDataHgt = false;
+
+           if (lastHgtTime_ms1 - lastHgtStoreTime_ms >= 10) {
+                lastHgtStoreTime_ms = lastHgtTime_ms1;
+                if (storeIndexHgt > (BUFFER_SIZE-1)) {
+                    storeIndexHgt = 0;
+                }
+                storedHgt[storeIndexHgt] = hgtMea1;
+                HgtTimeStamp[storeIndexHgt] = lastHgtStoreTime_ms;
+                storeIndexHgt = storeIndexHgt + 1;
+//printf("%u , %u, %f \n", TASmsecPrev, imuSampleTime_ms);
+//        cout << imuSampleTime_ms << "   " << storedAngRate[storeIndexIMU] << "\n";
+            }
     }
+
+
+    uint32_t timeDeltaHgt;
+    uint32_t bestTimeDeltaHgt = 200;
+    uint16_t bestStoreIndex = 0;
+
+
+            for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
+            {
+                timeDeltaHgt = abs( (imuSampleTime_ms - HgtTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecHgtDelay);
+                if (timeDeltaHgt < bestTimeDeltaHgt)
+                {
+                    bestStoreIndex = i;
+                    bestTimeDeltaHgt = timeDeltaHgt;
+                }
+            }
+
+
+//printf("%u , %u, %u, %u , %d, %f \n", imuSampleTime_ms, bestStoreIndex, bestTimeDeltaMag, MagTimeStamp[storeIndexMag-1], int(MagTimeStamp[storeIndexMag-1]-MagTimeStamp[bestStoreIndex]), Mag_Delay[0]);
+        if ((lastHgtMeasTime != HgtTimeStamp[bestStoreIndex]) && bestTimeDeltaHgt <20){
+            lastHgtMeasTime = HgtTimeStamp[bestStoreIndex];
+            lastHgtTime_ms  = HgtTimeStamp[bestStoreIndex];
+            hgtMea = storedHgt[bestStoreIndex];
+            newDataHgt = true;
+            RecallStates(statesAtHgtTime, (imuSampleTime_ms - _msecHgtDelay));   // this should be deleted
+            // printf("%u and %u and %u and %u\n",imuSampleTime_ms-lastHgtTime_ms,lastHgtTime_ms1-lastHgtTime_ms,bestTimeDeltaHgt,_msecHgtDelay);
+             }
+        else {
+        newDataHgt = false;
+        }
+         //   printf("%u and %u and %u\n", imuSampleTime_ms, bestStoreIndex, imuSampleTime_ms - HgtTimeStamp[bestStoreIndex]);
 }
+
+
 
 // check for new magnetometer data and update store measurements if available
 void NavEKF2::readMagData()
 {
-    if (use_compass() && _ahrs->get_compass()->last_update_usec() != lastMagUpdate) {
+    // buffering data
+    // coverting magnetometer reading time from micro seconds to to milliseconds
+    if (use_compass() && ((_ahrs->get_compass()->last_update_usec()/1000) != lastMagUpdate1)){
         // store time of last measurement update
-        lastMagUpdate = _ahrs->get_compass()->last_update_usec();
+        lastMagUpdate1 = _ahrs->get_compass()->last_update_usec()/1000;
 
         // Read compass data
         // We scale compass data to improve numerical conditioning
-        magData = _ahrs->get_compass()->get_field() * 0.001f;
+        magData1 = _ahrs->get_compass()->get_field() * 0.001f;
 
-        // get states stored at time closest to measurement time after allowance for measurement delay
-        RecallStates(statesAtMagMeasTime, (imuSampleTime_ms - _msecMagDelay));
 
-        // let other processes know that new compass data has arrived
-        newDataMag = true;
-    } else {
-        newDataMag = false;
+        if (lastMagUpdate1 - lastMagStoreTime_ms >= 10) {
+            lastMagStoreTime_ms = lastMagUpdate1;
+            if (storeIndexMag > (BUFFER_SIZE-1)) {
+                storeIndexMag = 0;
+            }
+            storedMag[storeIndexMag] = magData1;
+            MagTimeStamp[storeIndexMag] = lastMagStoreTime_ms;
+            storeIndexMag = storeIndexMag + 1;
+        }
+//    printf("%u and %u and %u\n",imuSampleTime_ms , storeIndexMag, MagTimeStamp[storeIndexMag-1]);
+
     }
+
+        uint32_t timeDeltaMag;
+        uint32_t bestTimeDeltaMag = 200;
+        uint16_t bestStoreIndex = 0;
+
+        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
+        {
+            timeDeltaMag = abs( (imuSampleTime_ms - MagTimeStamp[i]) -constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecMagDelay);
+            if (timeDeltaMag < bestTimeDeltaMag)
+            {
+                bestStoreIndex = i;
+                bestTimeDeltaMag = timeDeltaMag;
+            }
+        }
+
+       printf("%u\n",imuSampleTime_ms);
+
+        if ((lastMagUpdate != MagTimeStamp[bestStoreIndex]) && bestTimeDeltaMag <20){
+            lastMagUpdate = MagTimeStamp[bestStoreIndex];
+            magData = storedMag[bestStoreIndex];
+            // let other processes know that new compass data has arrived
+            newDataMag = true;
+            // get states stored at time closest to measurement time after allowance for measurement delay
+            RecallStates(statesAtMagMeasTime, (imuSampleTime_ms - _msecMagDelay));  // this should be deleted later on
+            // printf("%u and %u and %u and %u\n",imuSampleTime_ms-lastMagUpdate,lastMagUpdate1-lastMagUpdate,bestTimeDeltaMag,_msecMagDelay);
+             }
+        else {
+        newDataMag = false;
+        }
+
+
+
+
+
 }
 
 // check for new airspeed data and update stored measurements if available

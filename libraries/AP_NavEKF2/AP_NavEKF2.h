@@ -108,6 +108,8 @@ public:
     float storedHgt[BUFFER_SIZE];                 // sean
     uint32_t HgtTimeStamp[BUFFER_SIZE];    		  // sean
     uint32_t lastHealthyHgtTime_ms; // Sean time the barometer was last declared healthy
+   float Hgt_Delayed;
+
 
     uint16_t storeIndexD;						// sean
     uint32_t lastDStoreTime_ms;		 // sean
@@ -119,6 +121,16 @@ public:
     VectorN<Vector3f,BUFFER_SIZE> storedd_p_m;       //  sean buffer for delta corrsponding to position prediction mixed-invariant
     VectorN<Vector3f,BUFFER_SIZE> storedd_v_m;       //  sean buffer for delta corrsponding to velocity prediction mixed-invariant
     uint32_t ctr_rst;  // reset predictor cntr
+
+    uint32_t lastHgtMeasTime1;
+    uint32_t lastHgtTime_ms1;
+    float hgtMea1;
+
+
+    uint32_t lastMagUpdate1;
+    Vector3f magData1;
+
+
 
     AP_Predictors test_Predictor;
     AP_Predictors &get_Predictor(void) {

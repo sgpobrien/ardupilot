@@ -4,11 +4,11 @@
 
 #include <stdio.h>
 
-//sean
+
 #include <iostream>
 using namespace std;
 #include <stdlib.h>
-//end sean
+
 
 extern const AP_HAL::HAL& hal;
 const Vector3f gravityNED(0, 0, GRAVITY_MSS);
@@ -74,7 +74,7 @@ void AP_Predictors::AttitudeModel(Vector3f tilde_q)
 
 }
 
-void AP_Predictors::BestIndex2(uint32_t *closestTime, uint32_t *closestStoreIndex, uint32_t *timeStamp[BUFFER_SIZE], AP_Int16 _msecPosDelay)
+void AP_Predictors::BestIndex2(uint32_t *closestTime, uint16_t *closestStoreIndex, uint32_t (*timeStamp)[BUFFER_SIZE], AP_Int16 _msecDelay)
 {
     uint32_t time;
     *closestTime = 200;
@@ -82,8 +82,7 @@ void AP_Predictors::BestIndex2(uint32_t *closestTime, uint32_t *closestStoreInde
 
     for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
     {
-        time = abs( (imuSampleTime_ms - *timeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY));
-        //       printf("%u \n",_msecPosDelay);
+        time = abs( (imuSampleTime_ms - *timeStamp[i]) - constrain_int16(_msecDelay, 0, MAX_MSDELAY));
         if (time < *closestTime)
         {
             *closestStoreIndex = i;
@@ -91,6 +90,7 @@ void AP_Predictors::BestIndex2(uint32_t *closestTime, uint32_t *closestStoreInde
         }
     }
 }
+
 
 void AP_Predictors::BestIndex(AP_Int16 _msecPosDelay)
 {
@@ -101,7 +101,6 @@ void AP_Predictors::BestIndex(AP_Int16 _msecPosDelay)
     for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
     {
         timeD = abs( (imuSampleTime_ms - DTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY));
-        //       printf("%u \n",_msecPosDelay);
         if (timeD < bestTimeD)
         {
             bestStoreIndex = i;
@@ -296,11 +295,12 @@ void AP_Predictors::CascadedPredictor(Vector3f tilde_q, Vector3f tilde_Vel, Vect
     PositionModel(dtIMU);
     PositionModel2(dtIMU);
     BestIndex(_msecPosDelay);
+//    BestIndex2(&bestTime,&bestStoreIndex,&DTimeStamp,_msecPosDelay);
     AttitudePredictor(quat);
     VelocityPredictor(velocity);
     PositionPredictor(position);
     VelocityPredictor2(quat, velocity, _msecPosDelay);
-    PositionPredictor2(p_hat);
+    PositionPredictor2(position);
     static FILE *mylog;
     if (mylog==NULL) {
         mylog = fopen("logtmp.txt", "w");
