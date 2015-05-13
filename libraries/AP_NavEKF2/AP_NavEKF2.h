@@ -85,6 +85,10 @@ public:
 #define BUFFER_SIZE  200   // sean buffer size for sensors
 #define MAX_MSDELAY  2000   // maximum allowed delay
 
+    void BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay);
+    void storeDataFloat(float &data, float (&buffer)[BUFFER_SIZE], uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex);
+    void storeDataVector(Vector3f &data, VectorN<Vector3f,BUFFER_SIZE> &buffer, uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex);
+
     uint16_t storeIndexIMU;						// arash
     uint32_t lastAngRateStoreTime_ms;		 // sean
     VectorN<Vector3f,BUFFER_SIZE> storedAngRate;       //  sean
@@ -108,8 +112,8 @@ public:
     float storedHgt[BUFFER_SIZE];                 // sean
     uint32_t HgtTimeStamp[BUFFER_SIZE];    		  // sean
     uint32_t lastHealthyHgtTime_ms; // Sean time the barometer was last declared healthy
-   float Hgt_Delayed;
-
+    float Hgt_Delayed;
+    uint32_t bestTimeDeltaHgt;
 
     uint16_t storeIndexD;						// sean
     uint32_t lastDStoreTime_ms;		 // sean
@@ -216,6 +220,7 @@ public:
     // should we use the compass? This is public so it can be used for
     // reporting via ahrs.use_compass()
     bool use_compass(void) const;
+
 
     /*
     return the filter fault status as a bitmasked integer
@@ -573,6 +578,9 @@ private:
     Vector3f corrected_tilde_Vel1;
     Vector3f corrected_tilde_Vel2;
     Vector3f corrected_tilde_Vel12;
+
+    uint32_t bestTimeDeltaMag;
+    uint16_t bestStoreIndex;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

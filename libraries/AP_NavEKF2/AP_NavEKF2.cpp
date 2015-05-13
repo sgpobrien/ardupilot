@@ -3712,35 +3712,37 @@ void NavEKF2::readHgtData()    // modified for the delayed buffer
         // get measurement and set flag to let other functions know new data has arrived
         hgtMea1 = _baro.get_altitude();
 
+//           if (lastHgtTime_ms1 - lastHgtStoreTime_ms >= 10) {
+//                lastHgtStoreTime_ms = lastHgtTime_ms1;
+//                if (storeIndexHgt > (BUFFER_SIZE-1)) {
+//                    storeIndexHgt = 0;
+//                }
+//                storedHgt[storeIndexHgt] = hgtMea1;
+//                HgtTimeStamp[storeIndexHgt] = lastHgtStoreTime_ms;
+//                storeIndexHgt = storeIndexHgt + 1;
+//            }
+        storeDataFloat(hgtMea1, storedHgt, lastHgtStoreTime_ms, HgtTimeStamp, storeIndexHgt);
 
-           if (lastHgtTime_ms1 - lastHgtStoreTime_ms >= 10) {
-                lastHgtStoreTime_ms = lastHgtTime_ms1;
-                if (storeIndexHgt > (BUFFER_SIZE-1)) {
-                    storeIndexHgt = 0;
-                }
-                storedHgt[storeIndexHgt] = hgtMea1;
-                HgtTimeStamp[storeIndexHgt] = lastHgtStoreTime_ms;
-                storeIndexHgt = storeIndexHgt + 1;
 //printf("%u , %u, %f \n", TASmsecPrev, imuSampleTime_ms);
 //        cout << imuSampleTime_ms << "   " << storedAngRate[storeIndexIMU] << "\n";
-            }
     }
 
+    BestIndex(bestTimeDeltaHgt, bestStoreIndex, HgtTimeStamp, _msecPosDelay);
 
-    uint32_t timeDeltaHgt;
-    uint32_t bestTimeDeltaHgt = 200;
-    uint16_t bestStoreIndex = 0;
-
-
-            for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-            {
-                timeDeltaHgt = abs( (imuSampleTime_ms - HgtTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecHgtDelay);
-                if (timeDeltaHgt < bestTimeDeltaHgt)
-                {
-                    bestStoreIndex = i;
-                    bestTimeDeltaHgt = timeDeltaHgt;
-                }
-            }
+//    uint32_t timeDeltaHgt;
+//    uint32_t bestTimeDeltaHgt = 200;
+//    uint16_t bestStoreIndex = 0;
+//
+//
+//            for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
+//            {
+//                timeDeltaHgt = abs( (imuSampleTime_ms - HgtTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecHgtDelay);
+//                if (timeDeltaHgt < bestTimeDeltaHgt)
+//                {
+//                    bestStoreIndex = i;
+//                    bestTimeDeltaHgt = timeDeltaHgt;
+//                }
+//            }
 
 
 //printf("%u , %u, %u, %u , %d, %f \n", imuSampleTime_ms, bestStoreIndex, bestTimeDeltaMag, MagTimeStamp[storeIndexMag-1], int(MagTimeStamp[storeIndexMag-1]-MagTimeStamp[bestStoreIndex]), Mag_Delay[0]);
@@ -3773,33 +3775,35 @@ void NavEKF2::readMagData()
         // We scale compass data to improve numerical conditioning
         magData1 = _ahrs->get_compass()->get_field() * 0.001f;
 
-
-        if (lastMagUpdate1 - lastMagStoreTime_ms >= 10) {
-            lastMagStoreTime_ms = lastMagUpdate1;
-            if (storeIndexMag > (BUFFER_SIZE-1)) {
-                storeIndexMag = 0;
-            }
-            storedMag[storeIndexMag] = magData1;
-            MagTimeStamp[storeIndexMag] = lastMagStoreTime_ms;
-            storeIndexMag = storeIndexMag + 1;
-        }
+    storeDataVector(magData1, storedMag, lastMagStoreTime_ms, MagTimeStamp, storeIndexMag);
+//        if (lastMagUpdate1 - lastMagStoreTime_ms >= 10) {
+//            lastMagStoreTime_ms = lastMagUpdate1;
+//            if (storeIndexMag > (BUFFER_SIZE-1)) {
+//                storeIndexMag = 0;
+//            }
+//            storedMag[storeIndexMag] = magData1;
+//            MagTimeStamp[storeIndexMag] = lastMagStoreTime_ms;
+//            storeIndexMag = storeIndexMag + 1;
+//        }
 //    printf("%u and %u and %u\n",imuSampleTime_ms , storeIndexMag, MagTimeStamp[storeIndexMag-1]);
 
     }
 
-        uint32_t timeDeltaMag;
-        uint32_t bestTimeDeltaMag = 200;
-        uint16_t bestStoreIndex = 0;
+    BestIndex(bestTimeDeltaMag, bestStoreIndex, MagTimeStamp, _msecPosDelay);
 
-        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-        {
-            timeDeltaMag = abs( (imuSampleTime_ms - MagTimeStamp[i]) -constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecMagDelay);
-            if (timeDeltaMag < bestTimeDeltaMag)
-            {
-                bestStoreIndex = i;
-                bestTimeDeltaMag = timeDeltaMag;
-            }
-        }
+//        uint32_t timeDeltaMag;
+//        uint32_t bestTimeDeltaMag = 200;
+//        uint16_t bestStoreIndex = 0;
+//
+//        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
+//        {
+//            timeDeltaMag = abs( (imuSampleTime_ms - MagTimeStamp[i]) -constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecMagDelay);
+//            if (timeDeltaMag < bestTimeDeltaMag)
+//            {
+//                bestStoreIndex = i;
+//                bestTimeDeltaMag = timeDeltaMag;
+//            }
+//        }
 
        printf("%u\n",imuSampleTime_ms);
 
@@ -3815,11 +3819,52 @@ void NavEKF2::readMagData()
         else {
         newDataMag = false;
         }
+}
 
+void NavEKF2::storeDataFloat(float &data, float (&buffer)[BUFFER_SIZE], uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex)
+{
+    uint32_t currentTime = hal.scheduler->millis();
+    if (currentTime - lastStoreTime >= 10) {
+        lastStoreTime = currentTime;
+        if (storeIndex > (BUFFER_SIZE-1)) {
+            storeIndex = 0;
+        }
+        buffer[storeIndex]=data;
+        timeStamp[storeIndex] = lastStoreTime;
+        storeIndex = storeIndex + 1;
+    }
+}
 
+void NavEKF2::storeDataVector(Vector3f &data, VectorN<Vector3f,BUFFER_SIZE> &buffer, uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex)
+{
+    uint32_t currentTime = hal.scheduler->millis();
+    if (currentTime - lastStoreTime >= 10) {
+        lastStoreTime = currentTime;
+        if (storeIndex > (BUFFER_SIZE-1)) {
+            storeIndex = 0;
+        }
+        buffer[storeIndex]=data;
+        timeStamp[storeIndex] = lastStoreTime;
+        storeIndex = storeIndex + 1;
+    }
+}
 
+void NavEKF2::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay)
+{
+    uint32_t time_delta;
+    closestTime = 200;
+    closestStoreIndex = 0;
 
-
+    for (int i=0; i<=(BUFFER_SIZE-1); i++)
+    {
+        time_delta = abs( (imuSampleTime_ms - timeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY));
+        //       printf("%u \n",_msecPosDelay);
+        if (time_delta < closestTime)
+        {
+            closestStoreIndex = i;
+            closestTime = time_delta;
+        }
+    }
 }
 
 // check for new airspeed data and update stored measurements if available
