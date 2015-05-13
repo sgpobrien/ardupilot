@@ -85,6 +85,8 @@ public:
 #define BUFFER_SIZE  200   // sean buffer size for sensors
 #define MAX_MSDELAY  2000   // maximum allowed delay
 
+    uint16_t msecEkfDelay;
+
     uint16_t storeIndexIMU;						// arash
     uint32_t lastAngRateStoreTime_ms;		 // sean
     VectorN<Vector3f,BUFFER_SIZE> storedAngRate;       //  sean
@@ -130,7 +132,8 @@ public:
     uint32_t lastMagUpdate1;
     Vector3f magData1;
 
-
+    uint32_t lastAirspeedUpdate1;
+    float VtasMeas1;
 
     AP_Predictors test_Predictor;
     AP_Predictors &get_Predictor(void) {

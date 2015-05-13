@@ -873,6 +873,8 @@ void NavEKF2::UpdateStrapdownEquationsNED()
     Vector3f D_q_tmp;  // sean   temporary vector part of quaternion Delta
     Quaternion q_tmp;  // sean   temporary quaternion
     Quaternion q_tmp_m;  // sean   temporary quaternion
+    msecEkfDelay= _msecPosDelay;   // for now, I used the GPS delay as the EKF horizon delay. Later on, we need a separate avproxy parameter to set the EKF horizong delay.
+
 
     if (init_reset==0) {
         D_q[0]=1;
@@ -1078,6 +1080,9 @@ void NavEKF2::UpdateStrapdownEquationsNED()
 //test_Predictor.AttitudePredictor(dAngIMU, state.gyro_bias, _msecPosDelay, state.quat);
 //test_Predictor.VelocityPredictor(state.quat, dVelIMU1, dVelIMU2, IMU1_weighting, dtIMU, _msecPosDelay, state.accel_zbias1, state.accel_zbias2, state.velocity, state.position);
     test_Predictor.CascadedPredictor(tilde_q, tilde_Vel, corrected_tilde_Vel12, state.quat, dtIMU, _msecPosDelay, state.velocity, state.position);
+
+
+
 
 //
 //D_q = D_q_k1;
@@ -2682,16 +2687,6 @@ void NavEKF2::FuseMagnetometer()
 
 
 
-  static FILE *mylogg;
-    if (mylogg==NULL) {
-        mylogg = fopen("logtmpp.txt", "w");
-    }
-    if (mylogg!=NULL) {
-        // fputs ("Ali",  mylog);
-        fprintf (mylogg, "{%lu;%f;%f;%f}\n", (unsigned long)hal.scheduler->millis(), magData[0], magData[1], magData[2]);
-    }
-
-
 
         // calculate the measurement innovation
 //        innovMag[obsIndex] = MagPred[obsIndex] - magData[obsIndex];
@@ -2874,48 +2869,19 @@ void NavEKF2::FuseAirspeed()
         // calculate measurement innovation variance
         varInnovVtas = 1.0f/SK_TAS;
 
-// sean ////////////////////////////////////////////////////////////////////////////////////////////////////
-        if (TASmsecPrev - lastTasStoreTime_ms >= 10) {
-            lastTasStoreTime_ms = TASmsecPrev;
-            if (storeIndexTas > (BUFFER_SIZE-1)) {
-                storeIndexTas = 0;
-            }
-            storedTas[storeIndexTas] = VtasMeas;
-            TasTimeStamp[storeIndexTas] = lastTasStoreTime_ms;
-            storeIndexTas = storeIndexTas + 1;
-//printf("%u , %u, %f \n", TASmsecPrev, imuSampleTime_ms);
-//        cout << imuSampleTime_ms << "   " << storedAngRate[storeIndexIMU] << "\n";
-        }
 
-        uint32_t timeDeltaTas;
-        uint32_t bestTimeDeltaTas = 200;
-        uint16_t bestStoreIndex = 0;
-
-        float Vtas_Delayed;
-
-        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
-        {
-            timeDeltaTas = abs( (imuSampleTime_ms - TasTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecTasDelay);
-            if (timeDeltaTas < bestTimeDeltaTas)
-            {
-                bestStoreIndex = i;
-                bestTimeDeltaTas = timeDeltaTas;
-            }
-        }
-        Vtas_Delayed = storedTas[bestStoreIndex];
-
-//printf("%u , %u, %u, %u , %d, %f \n", imuSampleTime_ms, bestStoreIndex, bestTimeDeltaMag, MagTimeStamp[storeIndexMag-1], int(MagTimeStamp[storeIndexMag-1]-MagTimeStamp[bestStoreIndex]), Mag_Delay[0]);
+  static FILE *mylogg;
+    if (mylogg==NULL) {
+        mylogg = fopen("logtmpp.txt", "w");
+    }
+    if (mylogg!=NULL) {
+        fprintf (mylogg, "{%lu;%f}\n", (unsigned long)hal.scheduler->millis(),VtasMeas);
+    }
 
 
 
         // calculate the measurement innovation
-        innovVtas = VtasPred - Vtas_Delayed;
-
-//////////// end sean  //////////////////////////////////////////////////////////////////////
-
-        // innovVtas = VtasPred - VtasMeas;
-
-
+        innovVtas = VtasPred - VtasMeas;
 
         // calculate the innovation consistency test ratio
         tasTestRatio = sq(innovVtas) / (sq(_tasInnovGate) * varInnovVtas);
@@ -3734,7 +3700,7 @@ void NavEKF2::readHgtData()    // modified for the delayed buffer
 
             for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
             {
-                timeDeltaHgt = abs( (imuSampleTime_ms - HgtTimeStamp[i]) - constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecHgtDelay);
+                timeDeltaHgt = abs( (imuSampleTime_ms - HgtTimeStamp[i]) - constrain_int16(msecEkfDelay, 0, MAX_MSDELAY) + _msecHgtDelay);
                 if (timeDeltaHgt < bestTimeDeltaHgt)
                 {
                     bestStoreIndex = i;
@@ -3793,7 +3759,7 @@ void NavEKF2::readMagData()
 
         for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
         {
-            timeDeltaMag = abs( (imuSampleTime_ms - MagTimeStamp[i]) -constrain_int16(_msecPosDelay, 0, MAX_MSDELAY) + _msecMagDelay);
+            timeDeltaMag = abs( (imuSampleTime_ms - MagTimeStamp[i]) -constrain_int16(msecEkfDelay, 0, MAX_MSDELAY) + _msecMagDelay);
             if (timeDeltaMag < bestTimeDeltaMag)
             {
                 bestStoreIndex = i;
@@ -3801,7 +3767,6 @@ void NavEKF2::readMagData()
             }
         }
 
-       printf("%u\n",imuSampleTime_ms);
 
         if ((lastMagUpdate != MagTimeStamp[bestStoreIndex]) && bestTimeDeltaMag <20){
             lastMagUpdate = MagTimeStamp[bestStoreIndex];
@@ -3816,14 +3781,28 @@ void NavEKF2::readMagData()
         newDataMag = false;
         }
 
-
-
-
-
 }
 
 // check for new airspeed data and update stored measurements if available
-void NavEKF2::readAirSpdData()
+//void NavEKF2::readAirSpdData()
+//{
+//    // if airspeed reading is valid and is set by the user to be used and has been updated then
+//    // we take a new reading, convert from EAS to TAS and set the flag letting other functions
+//    // know a new measurement is available
+//    const AP_Airspeed *aspeed = _ahrs->get_airspeed();
+//    if (aspeed &&
+//            aspeed->use() &&
+//            aspeed->last_update_ms() != lastAirspeedUpdate) {
+//        VtasMeas = aspeed->get_airspeed() * aspeed->get_EAS2TAS();
+//        lastAirspeedUpdate = aspeed->last_update_ms();
+//        newDataTas = true;
+//        RecallStates(statesAtVtasMeasTime, (imuSampleTime_ms - _msecTasDelay));
+//    } else {
+//        newDataTas = false;
+//    }
+//}
+
+void NavEKF2::readAirSpdData()    // modified for predictor stuff
 {
     // if airspeed reading is valid and is set by the user to be used and has been updated then
     // we take a new reading, convert from EAS to TAS and set the flag letting other functions
@@ -3831,15 +3810,57 @@ void NavEKF2::readAirSpdData()
     const AP_Airspeed *aspeed = _ahrs->get_airspeed();
     if (aspeed &&
             aspeed->use() &&
-            aspeed->last_update_ms() != lastAirspeedUpdate) {
-        VtasMeas = aspeed->get_airspeed() * aspeed->get_EAS2TAS();
-        lastAirspeedUpdate = aspeed->last_update_ms();
-        newDataTas = true;
-        RecallStates(statesAtVtasMeasTime, (imuSampleTime_ms - _msecTasDelay));
-    } else {
-        newDataTas = false;
+            aspeed->last_update_ms() != lastAirspeedUpdate1) {
+        lastAirspeedUpdate1 = aspeed->last_update_ms();
+        VtasMeas1 = aspeed->get_airspeed() * aspeed->get_EAS2TAS();
+
+        if (lastAirspeedUpdate1 - lastTasStoreTime_ms >= 10) {
+            lastTasStoreTime_ms = lastAirspeedUpdate1;
+            if (storeIndexTas > (BUFFER_SIZE-1)) {
+                storeIndexTas = 0;
+            }
+            storedTas[storeIndexTas] = VtasMeas1;
+            TasTimeStamp[storeIndexTas] = lastTasStoreTime_ms;
+            storeIndexTas = storeIndexTas + 1;
+        }
+
+
     }
+
+        uint32_t timeDeltaTas;
+        uint32_t bestTimeDeltaTas = 200;
+        uint16_t bestStoreIndex = 0;
+
+ //       float Vtas_Delayed;
+
+        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
+        {
+            timeDeltaTas = abs( (imuSampleTime_ms - TasTimeStamp[i]) - constrain_int16(msecEkfDelay, 0, MAX_MSDELAY) + _msecTasDelay);
+            if (timeDeltaTas < bestTimeDeltaTas)
+            {
+                bestStoreIndex = i;
+                bestTimeDeltaTas = timeDeltaTas;
+            }
+        }
+
+
+        if ((lastAirspeedUpdate !=  TasTimeStamp[bestStoreIndex]) && bestTimeDeltaTas <20){
+            lastAirspeedUpdate = TasTimeStamp[bestStoreIndex];
+            VtasMeas =  storedTas[bestStoreIndex];
+            // let other processes know that new Vtas data has arrived
+            newDataTas = true;
+            // get states stored at time closest to measurement time after allowance for measurement delay
+            RecallStates(statesAtVtasMeasTime, (imuSampleTime_ms - _msecTasDelay));  // this should be deleted later on
+ //           printf("%u and %u and %u and %u and %u\n",imuSampleTime_ms-lastAirspeedUpdate,lastAirspeedUpdate1-lastAirspeedUpdate,bestTimeDeltaTas,_msecTasDelay,msecEkfDelay);
+             }
+        else {
+        newDataTas = false;
+        }
+
 }
+
+
+
 
 // calculate the NED earth spin vector in rad/sec
 void NavEKF2::calcEarthRateNED(Vector3f &omega, int32_t latitude) const
