@@ -88,6 +88,7 @@ public:
     void BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay);
     void storeDataFloat(float &data, float (&buffer)[BUFFER_SIZE], uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex);
     void storeDataVector(Vector3f &data, VectorN<Vector3f,BUFFER_SIZE> &buffer, uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex);
+    uint16_t msecEkfDelay;
 
     uint16_t storeIndexIMU;						// arash
     uint32_t lastAngRateStoreTime_ms;		 // sean
@@ -134,7 +135,8 @@ public:
     uint32_t lastMagUpdate1;
     Vector3f magData1;
 
-
+    uint32_t lastAirspeedUpdate1;
+    float VtasMeas1;
 
     AP_Predictors test_Predictor;
     AP_Predictors &get_Predictor(void) {
