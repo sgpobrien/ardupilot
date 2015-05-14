@@ -319,6 +319,34 @@ const AP_Param::GroupInfo NavEKF2::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("FALLBACK",    31, NavEKF2, _fallback, 1),
 
+    // @Param: ALT_SOURCE
+    // @DisplayName: Primary height source
+    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
+    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @User: Advanced
+    AP_GROUPINFO("HRZ_DELAY",    32, NavEKF2, _msecEkfDelay, 0),
+
+    // @Param: ALT_SOURCE
+    // @DisplayName: Primary height source
+    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
+    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @User: Advanced
+    AP_GROUPINFO("MAG_DELAY",    33, NavEKF2, _msecMagDelay, 0),
+
+    // @Param: ALT_SOURCE
+    // @DisplayName: Primary height source
+    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
+    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @User: Advanced
+    AP_GROUPINFO("ASP_DELAY",    34, NavEKF2, _msecTasDelay, 0),
+
+    // @Param: ALT_SOURCE
+    // @DisplayName: Primary height source
+    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
+    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @User: Advanced
+    AP_GROUPINFO("BARO_DELAY",    35, NavEKF2, _msecHgtDelay, 0),
+
     AP_GROUPEND
 };
 
@@ -353,13 +381,10 @@ NavEKF2::NavEKF2(const AP_AHRS *ahrs, AP_Baro &baro, RangeFinder &rng) :
     // Tuning parameters
     _gpsNEVelVarAccScale    = 0.05f;    // Scale factor applied to NE velocity measurement variance due to manoeuvre acceleration
     _gpsDVelVarAccScale     = 0.07f;    // Scale factor applied to vertical velocity measurement variance due to manoeuvre acceleration
-    _gpsPosVarAccScale      = 0.05f;    // Scale factor applied to horizontal position measurement variance due to manoeuvre acceleration
-//   _msecHgtDelay           = 80;       // Height measurement delay (msec)
-//    _msecHgtDelay           = 0;       // Sean change delay
+    _gpsPosVarAccScale      = 0.05f;    // Scale factor applied to horizontal position measurement variance due to manoeuvre acceleration:
+//    _msecHgtDelay           = 80;       // Sean change delay
 //   _msecMagDelay           = 40;       // Magnetometer measurement delay (msec)
-    _msecMagDelay           = 0;  // Sean change delay
 //   _msecTasDelay           = 240;      // Airspeed measurement delay (msec)
-    _msecTasDelay           = 0;    // Sean change delay
     _gpsRetryTimeUseTAS     = 20000;    // GPS retry time with airspeed measurements (msec)
     _gpsRetryTimeNoTAS      = 10000;    // GPS retry time without airspeed measurements (msec)
     _hgtRetryTimeMode0      = 10000;    // Height retry time with vertical velocity measurement (msec)
@@ -873,7 +898,6 @@ void NavEKF2::UpdateStrapdownEquationsNED()
     Vector3f D_q_tmp;  // sean   temporary vector part of quaternion Delta
     Quaternion q_tmp;  // sean   temporary quaternion
     Quaternion q_tmp_m;  // sean   temporary quaternion
-    msecEkfDelay= _msecPosDelay;   // for now, I used the GPS delay as the EKF horizon delay. Later on, we need a separate avproxy parameter to set the EKF horizong delay.
 
 
     if (init_reset==0) {
@@ -3685,7 +3709,7 @@ void NavEKF2::readHgtData()    // modified for the delayed buffer
     uint32_t bestTimeDelta;
     uint16_t bestStoreIndex;
 
-    BestIndex(bestTimeDelta, bestStoreIndex, HgtTimeStamp, msecEkfDelay);
+    BestIndex(bestTimeDelta, bestStoreIndex, HgtTimeStamp, _msecEkfDelay);
 
 //    uint32_t timeDeltaHgt;
 //    uint32_t bestTimeDeltaHgt = 200;
@@ -3748,7 +3772,7 @@ void NavEKF2::readMagData()
     uint32_t bestTimeDelta;
     uint16_t bestStoreIndex;
 
-    BestIndex(bestTimeDelta, bestStoreIndex, MagTimeStamp, msecEkfDelay);
+    BestIndex(bestTimeDelta, bestStoreIndex, MagTimeStamp, _msecEkfDelay);
 
 //        uint32_t timeDeltaMag;
 //        uint32_t bestTimeDeltaMag = 200;
@@ -3777,6 +3801,7 @@ void NavEKF2::readMagData()
         else {
         newDataMag = false;
         }
+    printf("%u and %u \n",_msecMagDelay,_msecEkfDelay);
 }
 
 // check for new airspeed data and update stored measurements if available
@@ -3825,7 +3850,7 @@ void NavEKF2::readAirSpdData()    // modified for predictor stuff
     uint32_t bestTimeDelta;
     uint16_t bestStoreIndex;
 
-    BestIndex(bestTimeDelta, bestStoreIndex, TasTimeStamp, msecEkfDelay);
+    BestIndex(bestTimeDelta, bestStoreIndex, TasTimeStamp, _msecEkfDelay);
 
 //        uint32_t timeDeltaTas;
 //        uint32_t bestTimeDeltaTas = 200;
@@ -3835,7 +3860,7 @@ void NavEKF2::readAirSpdData()    // modified for predictor stuff
 
 //        for (uint16_t i=0; i<=(BUFFER_SIZE-1); i++)
 //        {
-//            timeDeltaTas = abs( (imuSampleTime_ms - TasTimeStamp[i]) - constrain_int16(msecEkfDelay, 0, MAX_MSDELAY) + _msecTasDelay);
+//            timeDeltaTas = abs( (imuSampleTime_ms - TasTimeStamp[i]) - constrain_int16(_msecEkfDelay, 0, MAX_MSDELAY) + _msecTasDelay);
 //            if (timeDeltaTas < bestTimeDeltaTas)
 //            {
 //                bestStoreIndex = i;
@@ -3851,7 +3876,7 @@ void NavEKF2::readAirSpdData()    // modified for predictor stuff
             newDataTas = true;
             // get states stored at time closest to measurement time after allowance for measurement delay
             RecallStates(statesAtVtasMeasTime, (imuSampleTime_ms - _msecTasDelay));  // this should be deleted later on
- //           printf("%u and %u and %u and %u and %u\n",imuSampleTime_ms-lastAirspeedUpdate,lastAirspeedUpdate1-lastAirspeedUpdate,bestTimeDeltaTas,_msecTasDelay,msecEkfDelay);
+ //           printf("%u and %u and %u and %u and %u\n",imuSampleTime_ms-lastAirspeedUpdate,lastAirspeedUpdate1-lastAirspeedUpdate,bestTimeDeltaTas,_msecTasDelay,_msecEkfDelay);
              }
         else {
         newDataTas = false;
@@ -3887,7 +3912,7 @@ void NavEKF2::storeDataVector(Vector3f &data, VectorN<Vector3f,BUFFER_SIZE> &buf
     }
 }
 
-void NavEKF2::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &_msecPosDelay)
+void NavEKF2::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay)
 {
     uint32_t time_delta;
     closestTime = 200;
