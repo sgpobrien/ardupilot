@@ -319,31 +319,31 @@ const AP_Param::GroupInfo NavEKF2::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("FALLBACK",    31, NavEKF2, _fallback, 1),
 
-    // @Param: ALT_SOURCE
-    // @DisplayName: Primary height source
-    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
-    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @Param: HRZ_DELAY
+    // @DisplayName: Horizon delay.
+    // @Description:
+    // @Values:
     // @User: Advanced
     AP_GROUPINFO("HRZ_DELAY",    32, NavEKF2, _msecEkfDelay, 0),
 
-    // @Param: ALT_SOURCE
-    // @DisplayName: Primary height source
-    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
-    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @Param: MAG_DELAY
+    // @DisplayName: Magnetometer delay.
+    // @Description:
+    // @Values:
     // @User: Advanced
     AP_GROUPINFO("MAG_DELAY",    33, NavEKF2, _msecMagDelay, 0),
 
-    // @Param: ALT_SOURCE
-    // @DisplayName: Primary height source
-    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
-    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @Param: ASP_DELAY
+    // @DisplayName: Airspeed delay.
+    // @Description:
+    // @Values:
     // @User: Advanced
     AP_GROUPINFO("ASP_DELAY",    34, NavEKF2, _msecTasDelay, 0),
 
-    // @Param: ALT_SOURCE
-    // @DisplayName: Primary height source
-    // @Description: This parameter controls which height sensor is used by the EKF during optical flow navigation (when EKF_GPS_TYPE = 3). A value of will 0 cause it to always use baro altitude. A value of 1 will casue it to use range finder if available.
-    // @Values: 0:Use Baro, 1:Use Range Finder
+    // @Param: BARO_DELAY
+    // @DisplayName: Barometer delay.
+    // @Description:
+    // @Values:
     // @User: Advanced
     AP_GROUPINFO("BARO_DELAY",    35, NavEKF2, _msecHgtDelay, 0),
 
@@ -3727,7 +3727,7 @@ void NavEKF2::readHgtData()    // modified for the delayed buffer
 //            }
 
 //printf("%u , %u, %u, %u , %d, %f \n", imuSampleTime_ms, bestStoreIndex, bestTimeDeltaMag, MagTimeStamp[storeIndexMag-1], int(MagTimeStamp[storeIndexMag-1]-MagTimeStamp[bestStoreIndex]), Mag_Delay[0]);
-        if ((lastHgtMeasTime != HgtTimeStamp[bestStoreIndex]) && bestTimeDelta <20){
+        if ((lastHgtMeasTime != HgtTimeStamp[bestStoreIndex]) && bestTimeDelta < MAX_MSERR){
             lastHgtMeasTime = HgtTimeStamp[bestStoreIndex];
             lastHgtTime_ms  = HgtTimeStamp[bestStoreIndex];
             hgtMea = storedHgt[bestStoreIndex];
@@ -3789,7 +3789,7 @@ void NavEKF2::readMagData()
 //        }
 
 
-        if ((lastMagUpdate != MagTimeStamp[bestStoreIndex]) && bestTimeDelta <20){
+        if ((lastMagUpdate != MagTimeStamp[bestStoreIndex]) && bestTimeDelta < MAX_MSERR){
             lastMagUpdate = MagTimeStamp[bestStoreIndex];
             magData = storedMag[bestStoreIndex];
             // let other processes know that new compass data has arrived
@@ -3869,7 +3869,7 @@ void NavEKF2::readAirSpdData()    // modified for predictor stuff
 //        }
 
 
-        if ((lastAirspeedUpdate !=  TasTimeStamp[bestStoreIndex]) && bestTimeDelta <20){
+        if ((lastAirspeedUpdate !=  TasTimeStamp[bestStoreIndex]) && bestTimeDelta < MAX_MSERR){
             lastAirspeedUpdate = TasTimeStamp[bestStoreIndex];
             VtasMeas =  storedTas[bestStoreIndex];
             // let other processes know that new Vtas data has arrived
@@ -3915,7 +3915,7 @@ void NavEKF2::storeDataVector(Vector3f &data, VectorN<Vector3f,BUFFER_SIZE> &buf
 void NavEKF2::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay)
 {
     uint32_t time_delta;
-    closestTime = 200;
+    closestTime = MAX_MSDELAY;
     closestStoreIndex = 0;
 
     for (int i=0; i<=(BUFFER_SIZE-1); i++)

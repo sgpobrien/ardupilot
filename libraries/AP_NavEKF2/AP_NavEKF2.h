@@ -84,6 +84,7 @@ public:
 
 #define BUFFER_SIZE  200   // sean buffer size for sensors
 #define MAX_MSDELAY  2000   // maximum allowed delay
+#define MAX_MSERR    20  // Maximum ms time error that we allow when reading from sensor buffers.
 
     void BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay);
     void storeDataFloat(float &data, float (&buffer)[BUFFER_SIZE], uint32_t &lastStoreTime, uint32_t (&timeStamp)[BUFFER_SIZE], uint16_t &storeIndex);

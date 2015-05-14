@@ -90,7 +90,7 @@ void AP_Predictors::storeDataQuaternion(Quaternion &data, VectorN<Quaternion,BUF
 void AP_Predictors::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecPosDelay)
 {
     uint32_t time_delta;
-    closestTime = 200;
+    closestTime = MAX_MSDELAY;
     closestStoreIndex = 0;
 
     for (int i=0; i<=(BUFFER_SIZE-1); i++)
