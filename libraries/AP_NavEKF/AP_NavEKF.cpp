@@ -4098,6 +4098,7 @@ void NavEKF::readIMUData()
         // just read primary gyro
         readDeltaAngle(ins.get_primary_gyro(), dAngIMU);
     }
+    printf("(%f,%f,%f);", dAngIMU[0], dAngIMU[1], dAngIMU[2]);
 }
 
 // check for new valid GPS data and update stored measurement if available

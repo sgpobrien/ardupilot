@@ -91,6 +91,10 @@ public:
     // Constructor
     NavEKF2(const AP_AHRS *ahrs, AP_Baro &baro, const RangeFinder &rng);
 
+    #define BUFFER_SIZE  50   //  buffer size for sensors, this allows buffering of at least BUFFER_SIZE*20 ms=MAX_MSDELAY of data
+    #define MAX_MSDELAY  BUFFER_SIZE*20   // maximum allowed delay
+    #define MAX_MSERR    20  // Maximum ms time error that we allow when reading from sensor buffers.
+
     AP_Int8 est_sel;
 
     // This function is used to initialise the filter whilst moving, using the AHRS DCM solution
@@ -344,6 +348,8 @@ private:
     // initialise the covariance matrix
     void CovarianceInit();
 
+    void BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecTotalDelay, AP_Int16 &_msecSensorDelay);
+
     // helper functions for readIMUData
     bool readDeltaVelocity(uint8_t ins_index, Vector3f &dVel, float &dVel_dt);
     bool readDeltaAngle(uint8_t ins_index, Vector3f &dAng);
@@ -460,6 +466,17 @@ private:
     // align the NE earth magnetic field states with the published declination
     void alignMagStateDeclination();
 
+    uint16_t storeIndexIMU;
+    uint32_t lastAngRateStoreTime_ms;
+    VectorN<Vector3f,BUFFER_SIZE> storeddAngIMU;
+    VectorN<Vector3f,BUFFER_SIZE> storeddVelIMU1;
+    VectorN<Vector3f,BUFFER_SIZE> storeddVelIMU2;
+    VectorN<ftype,BUFFER_SIZE> storeddtIMUactual;
+    VectorN<ftype,BUFFER_SIZE> storeddtIMUavg;
+    VectorN<float,BUFFER_SIZE> storeddtDelVel1;
+    VectorN<float,BUFFER_SIZE> storeddtDelVel2;
+    uint32_t angRateTimeStamp[BUFFER_SIZE];
+
     // EKF Mavlink Tuneable Parameters
     AP_Float _gpsHorizVelNoise;     // GPS horizontal velocity measurement noise : m/s
     AP_Float _gpsVertVelNoise;      // GPS vertical velocity measurement noise : m/s
@@ -494,7 +511,9 @@ private:
     AP_Float _maxFlowRate;          // Maximum flow rate magnitude that will be accepted by the filter
     AP_Int8 _fallback;              // EKF-to-DCM fallback strictness. 0 = trust EKF more, 1 = fallback more conservatively.
     AP_Int8 _altSource;             // Primary alt source during optical flow navigation. 0 = use Baro, 1 = use range finder.
+    AP_Int16 _msecEkfDelay;
 
+    bool IMUBufferFilled;
     // Tuning parameters
     const float gpsNEVelVarAccScale;    // Scale factor applied to NE velocity measurement variance due to manoeuvre acceleration
     const float gpsDVelVarAccScale;     // Scale factor applied to vertical velocity measurement variance due to manoeuvre acceleration
@@ -750,6 +769,15 @@ private:
     // IMU processing
     float dtDelVel1;
     float dtDelVel2;
+
+    float dtDelVel1a;
+    float dtDelVel2a;
+    ftype dtIMUavga;
+    ftype dtIMUactuala;
+    Vector3f dVelIMU1a;
+    Vector3f dVelIMU2a;
+    Vector3f dAngIMUa;
+    uint32_t imuSampleTime_msa;
 
     // baro ground effect
     bool expectGndEffectTakeoff;      // external state from ArduCopter - takeoff expected

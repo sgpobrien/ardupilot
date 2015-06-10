@@ -370,12 +370,40 @@ const AP_Param::GroupInfo NavEKF2::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("ALT_SOURCE",    32, NavEKF2, _altSource, 1),
 
+    // @Param: HRZ_DELAY
+    // @DisplayName: Horizon delay.
+    // @Description:
+    // @Values:
+    // @User: Advanced
+    AP_GROUPINFO("HRZ_DELAY",    33, NavEKF2, _msecEkfDelay, 220),
+
+//    // @Param: MAG_DELAY
+//    // @DisplayName: Magnetometer delay.
+//    // @Description:
+//    // @Values:
+//    // @User: Advanced
+//    AP_GROUPINFO("MAG_DELAY",    34, NavEKF2, _msecMagDelay, 0),
+//
+//    // @Param: ASP_DELAY
+//    // @DisplayName: Airspeed delay.
+//    // @Description:
+//    // @Values:
+//    // @User: Advanced
+//    AP_GROUPINFO("ASP_DELAY",    35, NavEKF2, _msecTasDelay, 0),
+//
+//    // @Param: BARO_DELAY
+//    // @DisplayName: Barometer delay.
+//    // @Description:
+//    // @Values:
+//    // @User: Advanced
+//    AP_GROUPINFO("BARO_DELAY",    36, NavEKF2, _msecHgtDelay, 0),
+
     // @Param: EST_SEL
     // @DisplayName: Selection of which predictor output to set to telemetry variables v1 to v4.
     // @Description:
     // @Values:
     // @User: Advanced
-    AP_GROUPINFO("EST_SEL",      36, NavEKF2,  est_sel, 1),
+    AP_GROUPINFO("EST_SEL",      37, NavEKF2,  est_sel, 1),
 
     AP_GROUPEND
 };
@@ -4086,6 +4114,26 @@ void NavEKF2::ConstrainStates()
     terrainState = max(terrainState, state.position.z + rngOnGnd);
 }
 
+void NavEKF2::BestIndex(uint32_t &closestTime, uint16_t &closestStoreIndex, uint32_t (&timeStamp)[BUFFER_SIZE], AP_Int16 &_msecTotalDelay, AP_Int16 &_msecSensorDelay)
+{
+    int32_t time_delta;
+    closestTime = MAX_MSDELAY;
+    closestStoreIndex = 0;
+
+    uint32_t tmpvar1=constrain_int16(_msecTotalDelay, 0, MAX_MSDELAY);
+    uint32_t tmpvar2=_msecSensorDelay;
+
+    for (int i=0; i<=(BUFFER_SIZE-1); i++)
+    {
+        time_delta = imuSampleTime_ms - timeStamp[i] - tmpvar1+tmpvar2;
+        if ((time_delta >=0) && (time_delta < (int32_t)closestTime))
+        {
+            closestStoreIndex = i;
+            closestTime = time_delta;
+        }
+    }
+}
+
 bool NavEKF2::readDeltaVelocity(uint8_t ins_index, Vector3f &dVel, float &dVel_dt) {
     const AP_InertialSensor &ins = _ahrs->get_ins();
 
@@ -4112,8 +4160,6 @@ bool NavEKF2::readDeltaAngle(uint8_t ins_index, Vector3f &dAng) {
     }
     return false;
 }
-
-// update IMU delta angle and delta velocity measurements
 void NavEKF2::readIMUData()
 {
     const AP_InertialSensor &ins = _ahrs->get_ins();
@@ -4151,6 +4197,37 @@ void NavEKF2::readIMUData()
         // just read primary gyro
         readDeltaAngle(ins.get_primary_gyro(), dAngIMU);
     }
+
+    lastAngRateStoreTime_ms = imuSampleTime_ms;
+    if (storeIndexIMU > (BUFFER_SIZE-1)) {
+        storeIndexIMU = 0;
+    }
+
+    storeddAngIMU[storeIndexIMU] = dAngIMU;
+    storeddVelIMU1[storeIndexIMU] = dVelIMU1;
+    storeddVelIMU2[storeIndexIMU] = dVelIMU2;
+    storeddtIMUactual[storeIndexIMU] = dtIMUactual;
+    storeddtIMUavg[storeIndexIMU] = dtIMUavg;
+    storeddtDelVel1[storeIndexIMU] = dtDelVel1;
+    storeddtDelVel2[storeIndexIMU] = dtDelVel2;
+    angRateTimeStamp[storeIndexIMU] = lastAngRateStoreTime_ms;
+    storeIndexIMU = storeIndexIMU + 1;
+
+    AP_Int16 tempZeroTime;
+    uint32_t bestTimeDelta;
+    uint16_t bestStoreIndex;
+
+    BestIndex(bestTimeDelta, bestStoreIndex, angRateTimeStamp, _msecEkfDelay, tempZeroTime);
+
+    dAngIMU = storeddAngIMU[bestStoreIndex];
+    dVelIMU1 = storeddVelIMU1[bestStoreIndex];
+    dVelIMU2 = storeddVelIMU2[bestStoreIndex];
+    dtIMUactual = storeddtIMUactual[bestStoreIndex];
+    dtIMUavg = storeddtIMUavg[bestStoreIndex];
+    dtDelVel1 = storeddtDelVel1[bestStoreIndex];
+    dtDelVel2 = storeddtDelVel2[bestStoreIndex];
+
+    printf("(%f,%f,%f) \n", dAngIMU[0], dAngIMU[1], dAngIMU[2]);
 }
 
 // check for new valid GPS data and update stored measurement if available
@@ -4699,6 +4776,8 @@ void NavEKF2::InitialiseVariables()
     gpsAidingBad = false;
     highYawRate = false;
     yawRateFilt = 0.0f;
+
+    IMUBufferFilled = false;
 }
 
 // return true if we should use the airspeed sensor
