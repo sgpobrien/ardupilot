@@ -4213,7 +4213,7 @@ void NavEKF2::readIMUData()
     angRateTimeStamp[storeIndexIMU] = lastAngRateStoreTime_ms;
     storeIndexIMU = storeIndexIMU + 1;
 
-    AP_Int16 tempZeroTime;
+    AP_Int16 tempZeroTime = 0;
     uint32_t bestTimeDelta;
     uint16_t bestStoreIndex;
 
@@ -4321,6 +4321,39 @@ void NavEKF2::readGpsData()
     } else {
         gpsNotAvailable = false;
     }
+
+    storedSecondLastFixTime[storeIndexGPS] = secondLastFixTime_ms;
+    storeddLastFixTime[storeIndexGPS] = lastFixTime_ms;
+    storedNewDataGps[storeIndexGPS] = newDataGps;
+    storeddtStatesAtVelTime[storeIndexGPS] = statesAtVelTime;
+    storeddtStatesAtPosTime[storeIndexGPS] = statesAtPosTime;
+    storedVelNED[storeIndexGPS] = velNED;
+    storedGpsSpdAccuracy[storeIndexGPS] = gpsSpdAccuracy;
+    storedGpsNoiseScaler[storeIndexGPS] = gpsNoiseScaler;
+    storedGoodToAlign[storeIndexGPS] = goodToAlign;
+    storedGpsNotAvailable[storeIndexGPS] = gpsNotAvailable;
+    storedConstPosMode[storeIndexGPS] = constPosMode;
+    storedPV_AidingMode[storeIndexGPS] = PV_AidingMode;
+    storeIndexGPS = storeIndexGPS + 1;
+
+    AP_Int16 tempZeroTime;
+    uint32_t bestTimeDelta;
+    uint16_t bestStoreIndex;
+
+    BestIndex(bestTimeDelta, bestStoreIndex, angRateTimeStamp, _msecEkfDelay, tempZeroTime);
+
+    secondLastFixTime_ms = storedSecondLastFixTime[storeIndexIMU];
+    lastFixTime_ms = storeddLastFixTime[storeIndexIMU];
+    newDataGps = storedNewDataGps[storeIndexIMU];
+    statesAtVelTime = storeddtStatesAtVelTime[storeIndexIMU];
+    statesAtPosTime = storeddtStatesAtPosTime[storeIndexIMU];
+    velNED = storedVelNED[storeIndexIMU];
+    gpsSpdAccuracy = storedGpsSpdAccuracy[storeIndexIMU];
+    gpsNoiseScaler = storedGpsNoiseScaler[storeIndexIMU];
+    goodToAlign = storedGoodToAlign[storeIndexIMU];
+    gpsNotAvailable = storedGpsNotAvailable[storeIndexIMU];
+    constPosMode = storedConstPosMode[storeIndexIMU];
+    PV_AidingMode = storedPV_AidingMode[storeIndexIMU];
 }
 
 // check for new altitude measurement data and update stored measurement if available

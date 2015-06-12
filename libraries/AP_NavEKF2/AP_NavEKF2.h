@@ -477,6 +477,19 @@ private:
     VectorN<float,BUFFER_SIZE> storeddtDelVel2;
     uint32_t angRateTimeStamp[BUFFER_SIZE];
 
+    storedSecondLastFixTime[storeIndexIMU] = secondLastFixTime_ms;
+    storeddLastFixTime[storeIndexIMU] = lastFixTime_ms;
+    storedNewDataGps[storeIndexIMU] = newDataGps;
+    storeddtStatesAtVelTime[storeIndexIMU] = statesAtVelTime;
+    storeddtStatesAtPosTime[storeIndexIMU] = statesAtPosTime;
+    storedVelNED[storeIndexIMU] = velNED;
+    storedGpsSpdAccuracy[storeIndexIMU] = gpsSpdAccuracy;
+    storedGpsNoiseScaler[storeIndexIMU] = gpsNoiseScaler;
+    storedGoodToAlign[storeIndexIMU] = goodToAlign;
+    storedGpsNotAvailable[storeIndexIMU] = gpsNotAvailable;
+    storedConstPosMode[storeIndexIMU] = constPosMode;
+    storedPV_AidingMode[storeIndexIMU] = PV_AidingMode;
+    uint16_t storeIndexGPS;
     // EKF Mavlink Tuneable Parameters
     AP_Float _gpsHorizVelNoise;     // GPS horizontal velocity measurement noise : m/s
     AP_Float _gpsVertVelNoise;      // GPS vertical velocity measurement noise : m/s
